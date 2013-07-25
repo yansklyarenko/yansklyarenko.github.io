@@ -1,0 +1,220 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Back to basics: Versioned, Unversioned and Shared fields - .NET, Sitecore and setup development</title>
+  <meta name="author" content="Yan Sklyarenko">
+
+  
+  <meta name="description" content="It is well-known that each field of a template can be versioned (default option), unversioned or shared. The Template Builder UI exposes the &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://yansklyarenko.github.io/blog/2010/09/10/back-to-basics-versioned-unversioned">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title=".NET, Sitecore and setup development" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">.NET, Sitecore and setup development</a></h1>
+  
+    <h2>This is a port of my blog to the Github pages platform with the help of Octopress.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:yansklyarenko.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Back to Basics: Versioned, Unversioned and Shared Fields</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2010-09-10T02:23:00+03:00" pubdate data-updated="true">Sep 10<span>th</span>, 2010</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><div class='post'>
+<p>It is well-known that each field of a template can be versioned (default option), unversioned or shared. The Template Builder UI exposes the Unversioned and Shared properties as two independent checkboxes. And thus, despite it’s a very basic Sitecore concept, it is sometimes asked <a href="http://sdn.sitecore.net/forum//ShowPost.aspx?PostID=29034">what’s the point of marking a field both shared and unversioned</a>. The answer is “a field marked both shared and unversioned is still a shared field”. Think about “shared” as a superset of “unversioned” – the field can’t be shared (between all versions of all languages) without being unversioned (between all versions of one language).</p>  <p>Let’s see how it works under the hood when the field “sharing” level is changed. Let’s create a simple template with just a single field. We’ll keep the defaults so far (versioned). Now create a content item based on this template and fill in the field. </p>  <p>Sitecore fields are stored in three different tables inside the database: VersionedFields, UnversionedFields and SharedFields. The names are quite self-explanatory. Let’s run the following SQL query:</p>  <p>&#160;&#160;&#160;&#160;&#160; <font color="#0000ff">SELECT * FROM VersionedFields WHERE FieldId = &#8216;{GUID-GOES-HERE-…}&#8217;</font></p>  <p>As a result, one record is returned – the field information of the item we’ve just created is stored in the VersionedFields table. The similar queries for UnversionedFields and SharedFields give 0 records. </p>  <p>Now change the field to be Unversioned and run all 3 queries again – it will return 1 record for UnversionedFields table and 0 for others. Change the field to be both Shared and Unversioned and repeat the experiment – the field info now resides in SharedFields table. Now if you uncheck Unversioned and leave it just Shared, it will still show 1 record for SharedFields table and 0 for others. So, here’s the evidence!</p>  <p>NOTE: changing the field “sharing” level might result in a data loss (similar to type cast operation in C#), and Sitecore warns you about it.</p>  <p>You might think that two checkboxes are to be blamed for this confusion. Check out the hot VS extension called <a href="http://visualstudiogallery.msdn.microsoft.com/en-us/44a26c88-83a7-46f6-903c-5c59bcd3d35b/view">Sitecore Rocks</a> – a brand new tool (CTP for now) for developers working with Sitecore projects in VS 2010. It seems to look more natural in this way, isn’t it?</p>  <p><a href="http://lh5.ggpht.com/_dqWPbhO6dtA/TIlsZANnP8I/AAAAAAAAAXA/3E97dawvRnU/s1600-h/RocksDesignTemplate%5B4%5D.png"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" title="RocksDesignTemplate" border="0" alt="RocksDesignTemplate" src="http://lh6.ggpht.com/_dqWPbhO6dtA/TIlsZ1BB5aI/AAAAAAAAAXE/OHGbPYeLP2s/RocksDesignTemplate_thumb%5B2%5D.png?imgmax=800" width="644" height="178" /></a></p>  </div>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Yan Sklyarenko</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2010-09-10T02:23:00+03:00" pubdate data-updated="true">Sep 10<span>th</span>, 2010</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/sitecore/'>sitecore</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://yansklyarenko.github.io/blog/2010/09/10/back-to-basics-versioned-unversioned/" data-via="" data-counturl="http://yansklyarenko.github.io/blog/2010/09/10/back-to-basics-versioned-unversioned/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2010/05/07/torchexe-confuses-langauge-validation/" title="Previous Post: Torch.exe confuses the language validation and ProductCode validation">&laquo; Torch.exe confuses the language validation and ProductCode validation</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2011/01/27/moving-to-dotnetinstaller-simplest-case/" title="Next Post: Moving to dotNetInstaller: the simplest case">Moving to dotNetInstaller: the simplest case &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2013/01/03/nant-task-behaves-differently-in-092/">NAnt <copy> Task Behaves Differently in 0.92 and Prior Versions</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/11/19/possible-source-of-signtool-bad-format/">Possible Source of the Signtool 'Bad Format' 0x800700C1 Problem</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/10/29/a-solution-can-build-fine-from-inside/">A Solution Can Build Fine From Inside the Visual Studio, but Fail to Build With msbuild.exe</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/08/15/default-attribute-values-for-custom/">Default Attribute Values for Custom NAnt Tasks</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/07/06/generate-solution-file-for-number-of-c/">Generate a Solution File for a Number of C# Projects Files in a Folder</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - Yan Sklyarenko -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

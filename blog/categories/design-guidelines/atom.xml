@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: design guidelines | .NET, Sitecore and setup development]]></title>
+  <link href="http://yansklyarenko.github.io/blog/categories/design-guidelines/atom.xml" rel="self"/>
+  <link href="http://yansklyarenko.github.io/"/>
+  <updated>2013-07-25T23:37:50+03:00</updated>
+  <id>http://yansklyarenko.github.io/</id>
+  <author>
+    <name><![CDATA[Yan Sklyarenko]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[A warning to VB.NET developers]]></title>
+    <link href="http://yansklyarenko.github.io/blog/2009/08/16/warning-to-vbnet-developers/"/>
+    <updated>2009-08-16T23:43:00+03:00</updated>
+    <id>http://yansklyarenko.github.io/blog/2009/08/16/warning-to-vbnet-developers</id>
+    <content type="html"><![CDATA[<div class='post'>
+<p>Avoid defining methods with default arguments!</p>  <p>Today I have been exploring the “Member design” chapter of a great book of <a href="http://blogs.msdn.com/kcwalina/">Cwalina</a>/<a href="http://blogs.msdn.com/brada/">Abrams</a> “<a href="http://www.amazon.com/Framework-Design-Guidelines-Conventions-Development/dp/0321545613/ref=dp_ob_title_bk">Framework Design Guidelines</a>”, and found a guideline which shocked me a bit. No, the guideline itself is correct and valuable. I just was never thinking it works like this.</p>  <p>VB.NET has a language feature called default arguments. When you define a method in your class, you can specify default values to the optional parameters to be taken when this parameter is omitted. As far as I understand, this is a kind of alternative to the method overloading. </p>  <p>Consider the following code:</p>  <p><font color="#0000ff">Public Class DefaultValues      <br />&#160;&#160;&#160; Public Function Sum(ByVal a As Integer, Optional ByVal b As Integer =</font> <strong><font color="#ff0000">100</font></strong><font color="#0000ff">)      <br />&#160;&#160;&#160;&#160;&#160;&#160;&#160; Sum = a + b       <br />&#160;&#160;&#160; End Function       <br />&#160; End Class</font></p>  <p>(I speak C# myself, so excuse me my poor VB ;-))</p>  <p>Let’s say we compile this code into a DLL and we have a client console application to utilize that library:</p>  <p><font color="#0000ff">Module TestDefaultValues      <br />&#160;&#160;&#160; Sub Main()       <br />&#160;&#160;&#160;&#160;&#160;&#160;&#160; Dim df As DefaultValues.DefaultValues = New DefaultValues.DefaultValues()       <br />&#160;&#160;&#160;&#160;&#160;&#160;&#160; Console.WriteLine(df.Sum(<strong><font color="#ff0000">55</font></strong>))       <br />&#160;&#160;&#160; End Sub       <br />&#160; End Module</font></p>  <p>Compile everything and run TestDefaultValues.exe. The result is predictable: <strong><font color="#ff0000">155</font></strong>.</p>  <p>Now change the default value from 100 to 200 and compile only the library. DO NOT recompile the client application. Run it again, and it is still <strong><font color="#ff0000">155</font></strong>!</p>  <p>This is why it is strongly not recommended to use default arguments instead of normal method overloading. And this issue is why C# doesn’t expose this technique. </p>  <p>Be careful, VB.NET developers! And long live C#! :-)</p>  </div>
+
+]]></content>
+  </entry>
+  
+</feed>

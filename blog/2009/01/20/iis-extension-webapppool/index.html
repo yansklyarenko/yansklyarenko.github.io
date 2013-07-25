@@ -1,0 +1,220 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>IIS extension: WebAppPool - .NET, Sitecore and setup development</title>
+  <meta name="author" content="Yan Sklyarenko">
+
+  
+  <meta name="description" content="Another challenge - another piece of fun with WiX. Imagine the following requirement: the installation program must install an application pool on &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://yansklyarenko.github.io/blog/2009/01/20/iis-extension-webapppool">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title=".NET, Sitecore and setup development" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">.NET, Sitecore and setup development</a></h1>
+  
+    <h2>This is a port of my blog to the Github pages platform with the help of Octopress.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:yansklyarenko.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">IIS Extension: WebAppPool</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2009-01-20T22:06:00+02:00" pubdate data-updated="true">Jan 20<span>th</span>, 2009</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><div class='post'>
+Another challenge - another piece of fun with WiX. Imagine the following requirement: the installation program must install an application pool on IIS6+ environments; the multiple installed instances should use the same application pool. In other words, the application pool must be created with the first instance installation, and must be removed with the last instance uninstallation. <div><br /></div><div>A special element for maintaining IIS AppPools in IIS extension is called WebAppPool. As usual, we&#8217;ll wrap it into a separate component, so that it is created on install. Later, we&#8217;ll create a special custom action to deceive the standard removing mechanism on uninstall:</div><div><br /></div><div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">      &lt;Component DiskId=&#8221;1&#8221; Id=&#8221;CreateIISAppPool&#8221; Guid=&#8221;{YOURGUID-6C5B-4980-AD0B-E32FA2DBC1F4}&#8221; Directory=&#8221;WebsiteFolder&#8221;&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">         &lt;Condition&gt;IISMAJORVERSION &lt;&gt; &#8220;#5&#8221;&lt;/Condition&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">         &lt;iis:WebAppPool Id=&#8221;IISSiteAppPool6&#8221; Name=&#8221;[IISAPPPOOL_NAME]&#8221; MaxWorkerProcesses=&#8221;1&#8221; Identity=&#8221;networkService&#8221; /&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">         &lt;RegistryKey Root=&#8221;HKLM&#8221; Key=&#8221;$(var.ParentKey)&#8221;&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">            &lt;RegistryValue Name=&#8221;IISAppPoolName&#8221; Type=&#8221;string&#8221; Value=&#8221;[IISAPPPOOL_NAME]&#8221;/&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">         &lt;/RegistryKey&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">      &lt;/Component&gt;</span></span></div><div><br /></div></div><div>As you can see, the component is installed once the target system has IIS 6+. It creates a WebAppPool with the name provided in IISAPPPOOL_NAME public property. It also writes this name into a registry value, which resides under the instance-specific registry key. </div><div>With this component included into the MSI package, the app pool is created when the first instance is installed, and nothing happens for second and subsequent instances. </div><div><br /></div><div>Let&#8217;s examine the uninstall behavior. The MSI behaves natural - when it meets the component to uninstall, it removes the WebAppPool specified in it. But the IIS extension which performs the actual deletion of app pool, needs the name to be passed in it. So, the only thing we should do is to supply this action with a fake app pool name each time, except for the last instance uninstall.</div><div><br /></div><div>Here is the algorithm:</div><div><ol><li>search the registry for the app pool name as usual<br /></li><li>schedule a special action on unistall after AppSearch, which detects if this is the last instance being uninstalled, and if not, &#8220;breaks&#8221; the app pool name into something non-existent<br /></li></ol><div>The first point is quite straight-forward:</div><div><br /></div><div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">      &lt;Property Id=&#8221;IISAPPPOOL_NAME&#8221;&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">         &lt;RegistrySearch Id=&#8221;IISAppPoolName&#8221; Root=&#8221;HKLM&#8221; Key=&#8221;$(var.ParentKey)&#8221; Name=&#8221;IISAppPoolName&#8221; Type=&#8221;raw&#8221; /&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">      &lt;/Property&gt;</span></span></div><div><br /></div></div><div>The second one is not natural, like any hack:</div><div><br /></div><div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">      [CustomAction]</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">      public static ActionResult ChangeWebAppPoolNameToDeceiveUninstall(Session session)</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">      {</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">         int numberOfInstalled = 1;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">         foreach (ProductInstallation product in ProductInstallation.GetRelatedProducts(session[&#8220;UpgradeCode&#8221;]))</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">         {</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">            if ((session[&#8220;ProductCode&#8221;] != product.ProductCode) &amp;&amp; product.IsInstalled)</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">            {</span></span></div><div><span class="Apple-style-span"  style="color: rgb(51, 51, 255);  font-size:13px;">               numberOfInstalled++;</span><br /></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">               break;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">            }</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">         }</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);"><br /></span></span></div><div><span class="Apple-style-span"  style="color: rgb(51, 51, 255);  font-size:13px;">         if (numberOfInstalled > 1)</span><br /></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">         {</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">            session[&#8220;IISAPPPOOL_NAME&#8221;] += string.Format(&#8220;|{0}&#8221;, DateTime.Now.ToLongTimeString());</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">         }</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);"><br /></span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">         return ActionResult.Success;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">      }</span></span></div><div><br /></div></div><div>It iterates the related products (those sharing the UpgradeCode), and if it finds others installed, except for itself, it changes the app pool name we retrieved from registry into something unique, for instance, appends a unique string.</div><div><br /></div><div>Thus, the IIS custom action which is going to delete the app pool fails to find the one with the provided name, and does nothing. When, otherwise, it is the last instance being uninstalled, the retrieved app pool name remains unchanged, and the app pool is successfully removed.</div><div><br /></div><div>Note that the mentioned action should be <span class="Apple-style-span" style="font-weight: bold;">immediate</span>, should occur <span class="Apple-style-span" style="font-weight: bold;">after</span> AppSearch on <span class="Apple-style-span" style="font-weight: bold;">uninstall</span>.</div><div><br /></div><div>That&#8217;s it! I would appreciate any comments as usual.</div></div></div>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Yan Sklyarenko</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2009-01-20T22:06:00+02:00" pubdate data-updated="true">Jan 20<span>th</span>, 2009</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/iis-extension/'>IIS extension</a>, <a class='category' href='/blog/categories/wix/'>WiX</a>, <a class='category' href='/blog/categories/windows-installer/'>Windows Installer</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://yansklyarenko.github.io/blog/2009/01/20/iis-extension-webapppool/" data-via="" data-counturl="http://yansklyarenko.github.io/blog/2009/01/20/iis-extension-webapppool/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2009/01/19/iis-extension-website/" title="Previous Post: IIS extension: WebSite">&laquo; IIS extension: WebSite</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2009/02/02/extended-logging-options-in-wix-custom/" title="Next Post: Extended logging options in WiX custom actions">Extended logging options in WiX custom actions &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2013/01/03/nant-task-behaves-differently-in-092/">NAnt <copy> Task Behaves Differently in 0.92 and Prior Versions</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/11/19/possible-source-of-signtool-bad-format/">Possible Source of the Signtool 'Bad Format' 0x800700C1 Problem</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/10/29/a-solution-can-build-fine-from-inside/">A Solution Can Build Fine From Inside the Visual Studio, but Fail to Build With msbuild.exe</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/08/15/default-attribute-values-for-custom/">Default Attribute Values for Custom NAnt Tasks</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/07/06/generate-solution-file-for-number-of-c/">Generate a Solution File for a Number of C# Projects Files in a Folder</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - Yan Sklyarenko -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

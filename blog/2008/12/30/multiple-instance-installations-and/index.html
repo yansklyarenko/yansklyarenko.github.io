@@ -1,0 +1,266 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Multiple instance installations and patching - .NET, Sitecore and setup development</title>
+  <meta name="author" content="Yan Sklyarenko">
+
+  
+  <meta name="description" content="Well, this is the first message to my first weblog, and it should be outstanding by default. :-)Sometimes, when creating an installation program, it &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://yansklyarenko.github.io/blog/2008/12/30/multiple-instance-installations-and">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title=".NET, Sitecore and setup development" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">.NET, Sitecore and setup development</a></h1>
+  
+    <h2>This is a port of my blog to the Github pages platform with the help of Octopress.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:yansklyarenko.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Multiple Instance Installations and Patching</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2008-12-30T11:00:00+02:00" pubdate data-updated="true">Dec 30<span>th</span>, 2008</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><div class='post'>
+Well, this is the first message to my first weblog, and it should be outstanding by default. :-)<div><br /></div><div>Sometimes, when creating an installation program, it is necessary to support multiple instance installations of the product to one particular computer. This requirement immediately brings the complexity of the installation to the advanced level. A couple of most tricky things to look after are component rules and patching.</div><div><br /></div><div>In order to make your installation &#8220;multi-instance-aware&#8221;, you should author a number of instance transforms in your source. The number of transforms is the number of instances you plan to support (except for the default one, of course). Fortunately, WiX provides very convenient way to do this:</div><div><br /></div><div><div><span class="Apple-style-span" style="font-size: small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);"><span class="Apple-style-span" style="font-family: arial;">   &lt;instancetransforms property=&#8221;ANY_PROPERTY&#8221;&gt;</span></span></span></div><div><span class="Apple-style-span" style="font-size: small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);"><span class="Apple-style-span" style="font-family: arial;">      &lt;instance id=&#8221;InstanceId1&#8221; productcode=&#8221;{42A33A91-36B0-4700-A6F5-1289D22F358C}&#8221;/&gt;</span></span></span></div><div><span class="Apple-style-span" style="font-size: small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);"><span class="Apple-style-span" style="font-family: arial;">      &lt;instance id=&#8221;InstanceId2&#8221; productcode=&#8221;{68C62C01-D064-4CF0-9239-F5D2FF36BD9A}&#8221;/&gt;</span></span></span></div><div><span class="Apple-style-span" style="color: rgb(51, 51, 255); font-size: 13px;"><span class="Apple-style-span" style="font-family: arial;">      &#8230;</span></span></div><div><div><span class="Apple-style-span" style="font-size: small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);"><span class="Apple-style-span" style="font-family: arial;">   &lt;/instancetransforms&gt;</span></span></span></div><div><br /></div><div>As always with Windows Installer, this is not the end. According to the <a href="http://msdn.microsoft.com/en-us/library/aa367797(VS.85).aspx">MSI documentation about authoring multiple instances</a>, &#8220;To keep the nonfile data of each instance isolated, the base package should collect nonfile data into sets of components for each instance&#8221;. This can be done by authoring a duplicate of each component for each instance, and install conditionally. But it becomes really complex to manage when you have much more than 2 instances, let&#8217;s say, 100. </div><div><br /></div><div>I chose another way. Assuming the fact that each instance should contain the same set of components, but with different GUIDs, we can generate a number of transforms, one per each instance, which change just the GUIDs of all the components. So, the algorithm is similar to this:</div><div><ul><li>copy the MSI package</li><li>use API to query and update the database with new GUIDs for each component</li><li>generate a transform between the copy and original MSI</li><li>drop the copy MSI</li><li>repeat the steps about the number of times as many instances you plan to support</li><li>embed all these transforms into the original MSI</li></ul><div>Obviously, the number of such customization transforms must be equal to the number of instance transforms and the names should be convenient to use. For instance, if you did everything correctly, you should be able to run the installation of new instance as follows:</div><div><br /></div><div><span class="Apple-style-span" style="font-size: small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">msiexec /i YourPackage.msi MSINEWINSTANCE=1 TRANSFORMS=:InstanceId1;:ComponentGUIDTransform1.mst &#8230;</span></span></div><div><br /></div><div>This works like a charm in conjunction with an algorithm to detect next available instance and a bootstrapper. </div><div><br /></div><div>Now let&#8217;s turn to the patching. When I browsed the internet for the info about multiple instance installs and patches, I found <a href="http://blog.deploymentengineering.com/2006/10/multiple-instance-msis-and.html">a great post of Christopher Painter</a>. As he says there, one should populate the Targets property of the patch summary info stream with product codes of all the instances, otherwise the patch detects just the default instance. That&#8217;s correct, but, yes, this is not the end of the story.</div><div><br /></div><div>Let&#8217;s take a look at the <a href="http://msdn.microsoft.com/en-us/library/aa370578(VS.85).aspx">patch definition and its contents</a>: &#8220;Patches contain at a minimum, two database transforms and can contain patch files that are stored in the cabinet file stream of the patch package&#8221;. These two transforms contain the target product GUID and updated product GUID each. In the case of simple patching, it is just one GUID of the target product.</div><div><br /></div><div>Hence, in order to be applied to each instance, the patch must contain a pair of transforms for each instance. Unfortunately, it is not supported by WiX torch+pyro approach and we should fall back to the powerful API:</div><div><br /></div><div><div><span class="Apple-style-span" style="font-size: small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">   </span><span class="Apple-style-span" style="color: rgb(0, 153, 0);">// dump transform and change its properties</span></span></div><div><span class="Apple-style-span" style="font-size: small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">   string transformFileName = GetNextValidName(transformName, nameSuffix);</span></span></div><div><span class="Apple-style-span" style="font-size: small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">   patch.ExtractTransform(transformName, transformFileName);</span></span></div><div><span class="Apple-style-span" style="font-size: small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">   SummaryInfo info = new SummaryInfo(transformFileName, true);</span></span></div><div><span class="Apple-style-span" style="font-size: small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">   info.RevisionNumber = info.RevisionNumber.Replace(originalProductCode, productCode);</span></span></div><div><span class="Apple-style-span" style="font-size: small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">   info.Persist();</span></span></div><div><span class="Apple-style-span" style="font-size: small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">   info.Close();</span></span></div><div><br /></div></div><div>So, as you can see, we do the following (for each instance and for each of 2 transforms in default patch):</div><div><ul><li>extract transform from the patch package</li><li>change the original product code to this instance product code in summary info</li></ul><div>Afterwards, we must insert these newly created transforms into the _Storages table of the patch package:</div><div><br /></div><div><div><span class="Apple-style-span" style="font-size: small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">using (View insertView = patchForWrite.OpenView(&#8220;INSERT INTO `_Storages` (`Name`,`Data`) VALUES (&#8216;{0}&#8217;, ?)&#8221;, transformFileName))</span></span></div><div><span class="Apple-style-span" style="font-size: small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">{</span></span></div><div><span class="Apple-style-span" style="font-size: small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">   using (Record record = new Record(1))</span></span></div><div><span class="Apple-style-span" style="font-size: small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">   {</span></span></div><div><span class="Apple-style-span" style="font-size: small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">      record.SetStream(1, new FileStream(transformFileName, FileMode.Open));</span></span></div><div><span class="Apple-style-span" style="font-size: small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">      insertView.Execute(record);</span></span></div><div><span class="Apple-style-span" style="font-size: small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">      patchForWrite.Commit();</span></span></div><div><span class="Apple-style-span" style="font-size: small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">   }</span></span></div><div><span class="Apple-style-span" style="font-size: small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">}</span></span></div><div><br /></div></div><div>And finally, we should append the product GUID of each instance to the Template property of Summary info (it is shown as Targets with Orca) and the name of each transform to the LastSavedBy property of the Summary info (it is not shown with Orca). Something like this:</div><div><br /></div><div><div><span class="Apple-style-span" style="font-size: small;"><span class="Apple-style-span" style="color: rgb(0, 153, 0);">// update patch properties</span></span></div><div><span class="Apple-style-span" style="font-size: small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">if (!patchForWrite.SummaryInfo.Template.Contains(productCode))</span></span></div><div><span class="Apple-style-span" style="font-size: small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">   {</span></span></div><div><span class="Apple-style-span" style="font-size: small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">      patchForWrite.SummaryInfo.Template += &#8220;;&#8221; + productCode;</span></span></div><div><span class="Apple-style-span" style="font-size: small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">   }</span></span></div><div><span class="Apple-style-span" style="font-size: small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">patchForWrite.SummaryInfo.LastSavedBy += &#8220;;:&#8221; + transformFileName;</span></span></div><div><span class="Apple-style-span" style="font-size: small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">patchForWrite.SummaryInfo.Persist();</span></span></div><div><br /></div></div><div>That&#8217;s it! Afterwards, the following magic line should work correctly and patch the installed instance of your application:</div><div><br /></div><div><span class="Apple-style-span" style="font-size: small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">msiexec /p YourPatch.msp /n {YOURGUID-0002-0000-0000-624474736554} /qb</span></span><br /></div><div><br /></div><div>Good luck deploying! I would appreciate any comments on this.</div></div></div></div></div></div>
+<h2>Comments</h2>
+<div class='comments'>
+<div class='comment'>
+<div class='author'>Yan Sklyarenko</div>
+<div class='content'>
+Hi Andy,<br /><br />Thanks for your comment!<br /><br />Well, doing this manually every time is a bad habit :) There&#39;s an algorithm to generate a deterministic sequence of GUIDs based on the initial GUID you pass in. You can be sure that if you pass the same GUID two times, the algorithm will give you identical sequences of GUIDs. You can find the sample in WiX sources, /src/wix/uuid.cs.<br /><br />When I was writing this article, I used Christoper Paniter&#39;s post I reference in it as an inspiration and starting point of my experiments. Chris said that when you build patch, you should know the ProductCode it will be applied to. However, things have probably changed ever since, and Heath Stewart pointed out how to use  to build a patch which can be applied to any instance (see in the comments above). With this in mind, I suppose you can now build unlimited number of instance transforms at runtime and stay calm about patching&#8230; but this should be tested - I doubt I can foresee all the &quot;features&quot; of this approach. And you should keep the &quot;build-time complexity&quot; vs. &quot;runtime complexity&quot; dilemma in mind.<br /><br />When you play with this to prove it works fine, I would love to hear the results back from you! :)</div>
+</div>
+<div class='comment'>
+<div class='author'>Andy</div>
+<div class='content'>
+Hi Yan,<br /><br />Great article! Just so I am sure I understand, the algorithm you describe for managing instance transforms, the steps you describe are done manually as opposed to using the API, right? <br /><br />In other words, if I wanted to define 100 instances, then using your algorithm, I am pre-defining 100 instances that are captured as 100 transform files named:<br /><br />ComponentGUIDTransform1.mst<br />ComponentGUIDTransform2.mst <br /> &#8230;<br />ComponentGUIDTransform100.mst <br /><br />Would it be possible to read the MSI into memory and then use API calls to replace all component GUIDs in the tables at runtime? The new product codes could be queried from the registry later couldn&#39;t they?<br /><br />Thanks,<br />Andy</div>
+</div>
+<div class='comment'>
+<div class='author'>Yan Sklyarenko</div>
+<div class='content'>
+Hi tobias,<br /><br />&gt;&gt; So how does the patch know what to patch?<br />You apply the patch like this:<br />   msiexec /i {YOUR-GUID} PATCH=&quot;path\to\patch.msp&quot;<br />where {YOUR-GUID} is the ProductCode (instance) to patch.<br /><br />&gt;&gt; I can just use to see it works?<br />You can try this even on a sample project referenced in a WiX manual. Just make a project multi-instance (add a couple of instance transforms), and author a patch with PatchBaseline/Validate/@ProductId = &#39;no&#39;. Then install those two instances, and patch those two instances (the way shown above).<br /><br />Also, take a look at this thread: &quot;http://www.mail-archive.com/wix-users@lists.sourceforge.net/msg27915.html&quot;<br />Heath helped me a lot in understanding this technique.<br /><br />I don&#39;t have a standalone example right now - it is tightly incorporated into our main product build script. But you&#39;re welcome to ask further questions - I&#39;ll be glad to help you.</div>
+</div>
+<div class='comment'>
+<div class='author'>tobias</div>
+<div class='content'>
+Hi Yan,<br />thanks for the reply and the last comment on how to ease patching further. <br />What my thought was is that a patch also contains the component GUIDS that it is going to patch, which are different for every instance if you create instances the way you described. So how does the patch know what to patch? Anyway I think I will have to give this a try before commenting further, do you have a working that I can just use to see it works?</div>
+</div>
+<div class='comment'>
+<div class='author'>Yan Sklyarenko</div>
+<div class='content'>
+quirrel, thanks for your comment.<br /><br />&gt;&gt; Does it really work the way you describe?<br /><br />The Windows Installer documentation (http://msdn.microsoft.com/en-us/library/aa367797(VS.85).aspx) claims the following: &quot;To keep the nonfile data of each instance isolated, the base package should collect nonfile data into sets of components for each instance. The appropriate components should then be installed based on conditional statements that depend on the instance identifier.&quot;<br /><br />If a component contains a CreateFolder table entry, it is considered a nonfile data. For instance, if your WiX authoring is auto-generated using Heat, it is not very convenient to differentiate file-data components and nonfile-data components. I chose giving new GUID to every component - this is easy and GUIDs are for free. <br /><br />Actually, there&#39;s an easier way to create one patch for all instances of one product. Set &#39;ProductId&#39; attribute of &#39;Validate&#39; element to &#39;no&#39; and the patch you build will apply to every instance.</div>
+</div>
+<div class='comment'>
+<div class='author'>quirrel</div>
+<div class='content'>
+An full, simple example is always easier than snippests, but for me it is ok this way.<br />Great post on the issue. What I am worrying is the changed component GUIDs when it comes to patching. Does it really work the way you describe?</div>
+</div>
+<div class='comment'>
+<div class='author'>Yan Sklyarenko</div>
+<div class='content'>
+David, which point seems unclear to you in this post? I was trying to cover the key points in this approach I used, illustrating the most tricky parts with snippets.</div>
+</div>
+<div class='comment'>
+<div class='author'>David Cumps</div>
+<div class='content'>
+Any chance you have some downloadable sample WiX project illustrating this please?</div>
+</div>
+<div class='comment'>
+<div class='author'>Alex Shyba</div>
+<div class='content'>
+Hi Yan - Awesome to see you blogging! Welcome!</div>
+</div>
+</div>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Yan Sklyarenko</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2008-12-30T11:00:00+02:00" pubdate data-updated="true">Dec 30<span>th</span>, 2008</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/msi/'>MSI</a>, <a class='category' href='/blog/categories/wix/'>WiX</a>, <a class='category' href='/blog/categories/windows-installer/'>Windows Installer</a>, <a class='category' href='/blog/categories/multiple-instance/'>multiple instance</a>, <a class='category' href='/blog/categories/patching/'>patching</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://yansklyarenko.github.io/blog/2008/12/30/multiple-instance-installations-and/" data-via="" data-counturl="http://yansklyarenko.github.io/blog/2008/12/30/multiple-instance-installations-and/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+      
+        <a class="basic-alignment right" href="/blog/2009/01/10/attach-detach-database-during/" title="Next Post: Attach / Detach database during installation">Attach / Detach database during installation &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2013/01/03/nant-task-behaves-differently-in-092/">NAnt <copy> Task Behaves Differently in 0.92 and Prior Versions</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/11/19/possible-source-of-signtool-bad-format/">Possible Source of the Signtool 'Bad Format' 0x800700C1 Problem</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/10/29/a-solution-can-build-fine-from-inside/">A Solution Can Build Fine From Inside the Visual Studio, but Fail to Build With msbuild.exe</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/08/15/default-attribute-values-for-custom/">Default Attribute Values for Custom NAnt Tasks</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/07/06/generate-solution-file-for-number-of-c/">Generate a Solution File for a Number of C# Projects Files in a Folder</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - Yan Sklyarenko -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

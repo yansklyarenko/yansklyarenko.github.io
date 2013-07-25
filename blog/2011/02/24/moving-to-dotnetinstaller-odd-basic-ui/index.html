@@ -1,0 +1,243 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Moving to dotNetInstaller: the odd Basic UI - .NET, Sitecore and setup development</title>
+  <meta name="author" content="Yan Sklyarenko">
+
+  
+  <meta name="description" content="In the previous post, I’ve outlined how to emulate the launch conditions behavior in dotNetInstaller. In that article I have also emphasized the &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://yansklyarenko.github.io/blog/2011/02/24/moving-to-dotnetinstaller-odd-basic-ui">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title=".NET, Sitecore and setup development" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">.NET, Sitecore and setup development</a></h1>
+  
+    <h2>This is a port of my blog to the Github pages platform with the help of Octopress.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:yansklyarenko.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Moving to dotNetInstaller: The Odd Basic UI</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2011-02-24T18:36:00+02:00" pubdate data-updated="true">Feb 24<span>th</span>, 2011</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><div class='post'>
+<p>In the <a href="http://ysdevlog.blogspot.com/2011/02/moving-to-dotnetinstaller-launch.html">previous post</a>, I’ve outlined how to emulate the launch conditions behavior in dotNetInstaller. In that article I have also emphasized the importance of turning the UI into the Basic mode. It is necessary in order to avoid extra dialogs which require user interaction. If you followed the scenario I described, you might notice a strange behavior of the BasicUI mode: <strong><span >the message boxes disappear without any user participation</span></strong>. I thought it’s be a kind of a bug, but it was done on purpose. Take a look at this code (taken from dotNetInstaller sources):</p>  <pre class="code"><span style="color: blue">int </span>DniMessageBox::Show(<span style="color: blue">const </span>std::wstring&amp; p_lpszText, UINT p_nType <span style="color: green">/*=MB_OK*/</span>, UINT p_nDefaultResult <span style="color: green">/*=MB_OK*/</span>, UINT p_nIDHelp <span style="color: green">/*=0*/</span>)<br />{<br />   <span style="color: blue">int </span>result = p_nDefaultResult;<br />   <span style="color: blue">switch</span>(InstallUILevelSetting::Instance-&gt;GetUILevel())<br />   {<br />   <span style="color: green">// basic UI, dialogs appear and disappea<br />   </span><span style="color: blue">case </span>InstallUILevelBasic:<br />       {<br />           g_hHook = SetWindowsHookEx(WH_CBT, CBTProc, NULL, GetCurrentThreadId());<br />           CHECK_WIN32_BOOL(NULL != g_hHook, L<span style="color: #a31515">"Error setting CBT hook"</span>);<br />           result = AfxMessageBox(p_lpszText.c_str(), p_nType, p_nIDHelp);<br />           CHECK_BOOL(0 != result, L<span style="color: #a31515">"Not enough memory to display the message box."</span>);<br />           <span style="color: blue">if </span>(result == 0xFFFFFF) result = p_nDefaultResult;<br />       }<br />       <span style="color: blue">break</span>;<br /><br />   <span style="color: green">// silent, no UI<br />   </span><span style="color: blue">case </span>InstallUILevelSilent:<br />       result = p_nDefaultResult;<br />       <span style="color: blue">break</span>;<br /><br />   <span style="color: green">// full UI<br />   </span><span style="color: blue">case </span>InstallUILevelFull:<br />   <span style="color: blue">default</span>:<br />       result = AfxMessageBox(p_lpszText.c_str(), p_nType, p_nIDHelp);<br />       <span style="color: blue">break</span>;<br />   }<br /><br />   <span style="color: blue">return </span>result;<br />}</pre><p>So, as you can see, in Basic mode is shows the message box, and after some time (if you didn’t catch the moment to press any button), it automatically emulates the pressing of default choice button. I was quite surprised when I understood it was designed to work like this – that’s because I’ve never seen such a UI behavior…</p><p>But, anyway, I suspect that a user would like to know why the installation terminated  - a certain prerequisite is not installed. As long as the mentioned behavior is hard-coded, the only option is to create a custom build of dotNetInstaller. It’s obvious that the fix is trivial here – make the case for InstallUILevelBasic go the same branch as InstallUILevelFull, that is, just show the message box. Next step is to build the solution – see “Contributing to Source Code” chapter of dotNetInstaller.chm for instructions how to build.</p><p>Finally, install the custom build instead of the official one and make sure your setup project picks the changes up. That’s it!</p><p>As usual, I would appreciate any comments and notes!</p><p><br /></p></div>
+<h2>Comments</h2>
+<div class='comments'>
+<div class='comment'>
+<div class='author'>Yan Sklyarenko</div>
+<div class='content'>
+Hi Greg,<br /><br />To be honest, I&#39;ve not looked under the hood that much to explain the technique behind the /template attribute, but your assumption sounds rather logical. I&#39;ve not faced with the behavior you describe (with file attributes), probably because I&#39;m using version 2.0? I know it is still in beta, but it works fine for me. Try to check this out - it might be the case that it was fixed in the later versions than the one you use.<br /><br />Good luck!</div>
+</div>
+<div class='comment'>
+<div class='author'>Anonymous</div>
+<div class='content'>
+Hi Yan, thanks for your reply.<br /><br />I apologize for the delay, I&#39;m just getting back to working with the dotNetInstaller again (have a million things to do lately), so I looked into your feedback.<br /><br />The fileattributes collection within my configuration.xml file did not have any entries to begin with, so there was no Company attribute to edit - I had to add a new one. The configuration file was taken from the StandaloneSetup sample, and the dotNetInstaller.exe file that I&#39;m pointing the installerLinker at is from this sample too. <br /><br />When I use the installerLinker, this is the format I use to run in cmd:<br /><br />installerLinker /Output:setup.exe /Icon:Icon.ico /Template:dotNetInstaller.exe /Splash:Splash.bmp /Configuration:configuration.xml /Banner:banner.bmp /Embed+ /Verbose+<br /><br />Maybe it&#39;s just me, but I&#39;m not wholly understanding why the template reference points to dotNetInstaller.exe<br /><br />From the manual under the &quot;Setup Executable&quot; topic:<br />&quot;dotNetInstaller.exe is a bootstrapper, a lightweight driver for your setup process.&quot;<br /><br />I&#39;m pretty sure it is this executable that the installerLinker gets the file attributes from and then combines them with what I&#39;ve defined in the Installer Editor program.<br /><br />My solution for now is to use another piece of software to change the fileattributes after my setup.exe is built.<br /><br />Was hoping there exists another less-clunky method that I&#39;m missing.<br /><br />Cheers,<br />Greg</div>
+</div>
+<div class='comment'>
+<div class='author'>Yan Sklyarenko</div>
+<div class='content'>
+Thanks for your comment, Anonymous!<br /><br />I haven&#39;t tried what you&#39;re asking about (it was just not required to), but I can see there&#39;s a topic in User Guide help file called &quot;Attributes &amp; Versions&quot;. It describes how to change the attribute values and add custom attributes. <br /><br />BTW, what do you add another Company attribute instead of changing the one which is already there?</div>
+</div>
+<div class='comment'>
+<div class='author'>Anonymous</div>
+<div class='content'>
+Thank you for the great articles on this bootstrapper.  It comes in handy with the somewhat limited documentation on their site!<br /><br />Something I haven&#39;t been able to find information on is how to change the file attributes properly.  For example, adding a Company attribute inserts a second company attribute on top of the one that is absorbed from the &quot;dotNetInstaller.exe&quot; template file.  <br /><br />Do you have any tips how to do this task? (short of using a second utility to edit the file attributes after the setup file is produced)</div>
+</div>
+</div>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Yan Sklyarenko</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2011-02-24T18:36:00+02:00" pubdate data-updated="true">Feb 24<span>th</span>, 2011</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/bootstrapper/'>bootstrapper</a>, <a class='category' href='/blog/categories/dotnetinstaller/'>dotNetInstaller</a>, <a class='category' href='/blog/categories/install/'>install</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://yansklyarenko.github.io/blog/2011/02/24/moving-to-dotnetinstaller-odd-basic-ui/" data-via="" data-counturl="http://yansklyarenko.github.io/blog/2011/02/24/moving-to-dotnetinstaller-odd-basic-ui/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2011/02/18/moving-to-dotnetinstaller-launch/" title="Previous Post: Moving to dotNetInstaller: launch conditions">&laquo; Moving to dotNetInstaller: launch conditions</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2011/09/14/revisited-multiple-instance/" title="Next Post: Revisited: Multiple Instance installations and patches">Revisited: Multiple Instance installations and patches &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2013/01/03/nant-task-behaves-differently-in-092/">NAnt <copy> Task Behaves Differently in 0.92 and Prior Versions</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/11/19/possible-source-of-signtool-bad-format/">Possible Source of the Signtool 'Bad Format' 0x800700C1 Problem</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/10/29/a-solution-can-build-fine-from-inside/">A Solution Can Build Fine From Inside the Visual Studio, but Fail to Build With msbuild.exe</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/08/15/default-attribute-values-for-custom/">Default Attribute Values for Custom NAnt Tasks</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/07/06/generate-solution-file-for-number-of-c/">Generate a Solution File for a Number of C# Projects Files in a Folder</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - Yan Sklyarenko -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

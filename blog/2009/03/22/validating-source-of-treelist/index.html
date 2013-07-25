@@ -1,0 +1,228 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Validating the source of TreeList - .NET, Sitecore and setup development</title>
+  <meta name="author" content="Yan Sklyarenko">
+
+  
+  <meta name="description" content="Sitecore 6 validation was designed to validate the field values. Recently, I also found it useful to control the source of the complex field types, &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://yansklyarenko.github.io/blog/2009/03/22/validating-source-of-treelist">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title=".NET, Sitecore and setup development" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">.NET, Sitecore and setup development</a></h1>
+  
+    <h2>This is a port of my blog to the Github pages platform with the help of Octopress.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:yansklyarenko.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Validating the Source of TreeList</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2009-03-22T21:18:00+02:00" pubdate data-updated="true">Mar 22<span>nd</span>, 2009</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><div class='post'>
+Sitecore 6 validation was designed to validate the field values. Recently, I also found it useful to control the source of the complex field types, like TreeList. In this post, I&#8217;ll explain this option taking the TreeList field type as an example.<div><br /></div><div>I&#8217;m skipping the validation basics here, since this topic is covered by <a href="http://alexeyrusakov.com/sitecoreblog/">Alexey Rusakov</a> in his <a href="http://alexeyrusakov.com/sitecoreblog/2008/07/02/Sitecore+6+Validation+Part+1.aspx">validation series</a>.</div><div><br /></div><div>You can define a number of parameters in the source of TreeList field type. The complete list is described in the paragraph 2.4.2 &#8220;How to Control the List of Items in a Selection Field&#8221; of the <a href="http://sdn5.sitecore.net/upload/sitecore6/datadefinitioncookbook-a4.pdf">Data Definition cookbook</a>. These parameters can filter the available and visible items in the content tree (IncludeTemplatesForSelection, ExcludeItemsForDisplay, etc.), define the tree root (DataSource), control multiple selection (AllowMultipleSelection), etc.</div><div><br /></div><div>But modifying this long list of parameters in a one-line edit field can lead to a simple typos, both in the parameters&#8217; names and values. Let&#8217;s examine how this can be &#8220;solved&#8221; by introducing a source validator.</div><div><br /></div><div>The BaseValidator class, the very root of the validator hierarchy in Sitecore API, has a protected method GetField(), which returns an instance of a Field - the one we validate. Hence, the Source property is also available. We want to validate only complex source here, thus skipping if it is an ID or an item path:</div><div><br /></div><div><div>        protected override ValidatorResult Evaluate()</div><div>        {</div><div>            ValidatorResult result = ValidatorResult.Valid;</div><div><br /></div><div>            Field field = GetField();</div><div>            if (field != null)</div><div>            {</div><div>                string fieldSource = field.Source;</div><div>                if (!string.IsNullOrEmpty(fieldSource) &amp;&amp; !ID.IsID(fieldSource) </div><div>                    &amp;&amp; !fieldSource.StartsWith(&#8220;/&#8221;, StringComparison.InvariantCulture))</div><div>                {</div><div>                    result = EvaluateSourceParameters(fieldSource);</div><div>                }</div><div>            }</div><div><br /></div><div>            return result;</div><div>        }</div><div><br /></div></div><div>Ok, let&#8217;s start the validation from just the verification if the source is &#8220;well-formed&#8221;. It might happen that a certain parameter was left without a value, or a typo was introduced to the well-known name. Sitecore will never throw an error in such a case, but instead you may receive an orphaned field with nothing to choose from. Thus, the simplest validation includes these two checks, otherwise it keeps the name/value pairs for further analysis:</div><div><br /></div><div><div>        ValidatorResult EvaluateSourceParameters(string fieldSource)</div><div>        {</div><div>            SafeDictionary<string> parameters = new SafeDictionary<string>();</string></string></div><div>            string[] sourceParts = fieldSource.Split(&#8216;&amp;&#8217;);</div><div>            foreach (string part in sourceParts)</div><div>            {</div><div>                if (string.IsNullOrEmpty(part))</div><div>                {</div><div>                    continue;</div><div>                }</div><div>                if (!part.Contains(&#8220;=&#8221;) || part.EndsWith(&#8220;=&#8221;))</div><div>                {</div><div>                    Text = string.Format(&#8220;The value is not set for source parameter &#8216;{0}&#8217;&#8221;, part.TrimEnd(&#8216;=&#8217;));</div><div>                    return GetFailedResult(ValidatorResult.Error);</div><div>                }</div><div>                else</div><div>                {</div><div>                    string parameterName = part.Substring(0, part.IndexOf(&#8216;=&#8217;)).ToLower();</div><div>                    if (!sourceParameters.Contains(parameterName))</div><div>                    {</div><div>                        Text = string.Format(&#8220;Unknown source parameter &#8216;{0}&#8217;&#8221;, parameterName);</div><div>                        return GetFailedResult(ValidatorResult.Error);</div><div>                    }</div><div>                    else</div><div>                    {</div><div>                        string parameterValue = part.Substring(part.IndexOf(&#8216;=&#8217;) + 1);</div><div>                        parameters.Add(parameterName, parameterValue);</div><div>                    }</div><div>                }</div><div>            }</div><div>            return EvaluateWellFormedParameters(parameters);</div><div>        }</div><div><br /></div><div>The further validation can go deeper and verify the presence of the specified template or item. The method EvaluateWellFormedParameters in this example just iterates the name/value pairs of parameters and applies a certain validation strategy, for instance:</div><div><br /></div><div><div>        ValidatorResult EvaluateTemplates(string value, Database database)</div><div>        {</div><div>            string[] templates = value.Split(new char[] { &#8216;,&#8217; });</div><div>            foreach (string template in templates)</div><div>            {</div><div>                if (!string.IsNullOrEmpty(template) &amp;&amp; Query.SelectSingleItem(string.Format(&#8220;/sitecore/templates//*[@@key=&#8217;{0}&#8217;]&#8221;, template.ToLower()), database) == null)</div><div>                {</div><div>                    Text = string.Format(&#8220;The template &#8216;{0}&#8217; doesn&#8217;t exist in the &#8216;{1}&#8217; database&#8221;, template, database.Name);</div><div>                    return ValidatorResult.Warning;</div><div>                }</div><div>            }</div><div>            return ValidatorResult.Valid;</div><div>        }</div><div><br /></div><div>I&#8217;m attaching the <a href="http://sites.google.com/site/yshost/Home/files/TreeListSourceValidator.cs">full code of this example</a>. </div><div><br /></div><div>There are several notes to consider:</div><div><ul><li>The DatabaseName parameter is not validated, because Sitecore takes over this. Try specifying DatabaseName=nosuchdb, and press Save</li><li>The parameter names are case-insensitive. This is because the parameters are extracted with the StringUtil.ExtractParameter() method, which ignores the case</li><li>The TreeList field type doesn&#8217;t &#8220;tolower&#8221; the values of IncludeItemsForDisplay and ExcludeItemsForDisplay parameters. Hence, be sure to specify an item key instead of an item name here</li><li>The content tree filter is built out of the &#8220;ForDisplay&#8221; parameters using &#8216;and&#8217; operation. Thus, if IncludeItemsForDisplay contain items of other templates than those specified in IncludeTemplatesForDisplay, this results in an empty tree. This can also be a point of extension of this validator&#8217;s functionality</li></ul><div>Hope anyone finds this article useful. As usual, I would appreciate any comments.</div></div></div></div><div><br /></div></div>
+<h2>Comments</h2>
+<div class='comments'>
+<div class='comment'>
+<div class='author'>Anonymous</div>
+<div class='content'>
+Nice work, Yan. Putting it into action for our standard core module right away. Thank you.</div>
+</div>
+</div>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Yan Sklyarenko</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2009-03-22T21:18:00+02:00" pubdate data-updated="true">Mar 22<span>nd</span>, 2009</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/treelist/'>TreeList</a>, <a class='category' href='/blog/categories/sitecore/'>sitecore</a>, <a class='category' href='/blog/categories/validation/'>validation</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://yansklyarenko.github.io/blog/2009/03/22/validating-source-of-treelist/" data-via="" data-counturl="http://yansklyarenko.github.io/blog/2009/03/22/validating-source-of-treelist/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2009/02/02/extended-logging-options-in-wix-custom/" title="Previous Post: Extended logging options in WiX custom actions">&laquo; Extended logging options in WiX custom actions</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2009/07/19/xslt-inline-blocks-of-managed-code/" title="Next Post: XSLT: inline blocks of managed code">XSLT: inline blocks of managed code &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2013/01/03/nant-task-behaves-differently-in-092/">NAnt <copy> Task Behaves Differently in 0.92 and Prior Versions</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/11/19/possible-source-of-signtool-bad-format/">Possible Source of the Signtool 'Bad Format' 0x800700C1 Problem</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/10/29/a-solution-can-build-fine-from-inside/">A Solution Can Build Fine From Inside the Visual Studio, but Fail to Build With msbuild.exe</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/08/15/default-attribute-values-for-custom/">Default Attribute Values for Custom NAnt Tasks</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/07/06/generate-solution-file-for-number-of-c/">Generate a Solution File for a Number of C# Projects Files in a Folder</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - Yan Sklyarenko -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

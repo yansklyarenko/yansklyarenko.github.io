@@ -1,0 +1,220 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>A simple batch script to dump the contents of the folder and its subfolders recursively - .NET, Sitecore and setup development</title>
+  <meta name="author" content="Yan Sklyarenko">
+
+  
+  <meta name="description" content="This topic might seem too minor for a blog post. You can argue that it’s covered by a simple call to a dir /s command. Well, that’s true unless &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://yansklyarenko.github.io/blog/2012/03/02/simple-batch-script-to-dump-contents-of">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title=".NET, Sitecore and setup development" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">.NET, Sitecore and setup development</a></h1>
+  
+    <h2>This is a port of my blog to the Github pages platform with the help of Octopress.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:yansklyarenko.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">A Simple Batch Script to Dump the Contents of the Folder and Its Subfolders Recursively</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-03-02T11:13:00+02:00" pubdate data-updated="true">Mar 2<span>nd</span>, 2012</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><div class='post'>
+<div dir="ltr" style="text-align: left;" trbidi="on">This topic might seem too minor for a blog post. You can argue that it’s covered by a simple call to a <strong><a href="http://ss64.com/nt/dir.html">dir /s</a></strong> command. Well, that’s true unless you need to perform some actions with each line in the list. In this case it could be tricky if you do not use BATCH files on a daily basis. <br />Imagine you need to dump the file paths in a folder and its subfolders to a plain list. Besides, you’d like to replace the absolute path prefix with UNC share prefix, because each path contains a shared folder and each file will be accessible from inside the network. So, here goes the script:<br /><div class="wlWriterEditableSmartContent" id="scid:f32c3428-b7e9-4f15-a8ea-c502c7ff2e88:5c4445c5-847e-4642-8167-0397b2755daa" style="display: inline; float: none; margin: 0px; padding-bottom: 0px; padding-left: 0px; padding-right: 0px; padding-top: 0px;"><pre class="brush: vb;">@echo off<br />set _from=*repo<br />set _to=\\server\repo<br />FOR /F "tokens=*" %%G IN ('dir /s /b /a:-D /o:-D') DO (CALL :replace %%G) &gt;&gt; files.txt<br />GOTO :eof<br /><br />:replace<br /> set _str=%1<br /> call set _result=%%_str:%_from%=%_to%%%<br /> echo %_result%<br />GOTO :eof</pre></div><br />Let’s start from the <a href="http://ss64.com/nt/for_cmd.html">FOR</a> loop. This version of the command loops through the output of another command, in this case, dir. Essentially, we ask dir to run recursively (/s), ignore directories (/a:-D), sort by date/time, newest first (/o:-D) and output just the basic information (/b). And the FOR command works on top of this, iterating all lines of dir output (tokens=*), calling a subroutine :replace for each line and streaming the final result into files.txt.<br /><br />The subroutine does a very simple thing – it replaces one part of the string with another. Let’s step through it anyway. First, it gets the input parameter (%1) and saves it into _str variable. I suppose %1 could be used as is in the expression below, but the number of ‘%’ signs drives me crazy even without it. The next line is the most important – it does the <a href="http://ss64.com/nt/syntax-replace.html">actual replacement job</a>. I’ll try to explain all these % signs: the variable inside the expression must be wrapped with % (like _from and _to); the expression itself should go between % and % as if it’s a variable itself. And the outermost pair of % is there for escaping purpose, I suppose – you will avoid it if you use just string literals for tokens in expression. Note also the usage of the <a href="http://ss64.com/nt/call.html">CALL SET statement</a>. Finally, the last line of the subroutine echoes the result.<br /><br />There’s one last point worth attention. The _from variable, which represents the token to replace, contains a * sign. It means “replace ‘repo’ and everything before it” in the replace expression.<br /><br />The best resource I found on the topic is <a href="http://ss64.com/nt/">http://ss64.com/nt/</a>.</div></div>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Yan Sklyarenko</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-03-02T11:13:00+02:00" pubdate data-updated="true">Mar 2<span>nd</span>, 2012</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/batch-script/'>batch script</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://yansklyarenko.github.io/blog/2012/03/02/simple-batch-script-to-dump-contents-of/" data-via="" data-counturl="http://yansklyarenko.github.io/blog/2012/03/02/simple-batch-script-to-dump-contents-of/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2011/09/14/revisited-multiple-instance/" title="Previous Post: Revisited: Multiple Instance installations and patches">&laquo; Revisited: Multiple Instance installations and patches</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2012/07/06/generate-solution-file-for-number-of-c/" title="Next Post: Generate a solution file for a number of C# projects files in a folder">Generate a solution file for a number of C# projects files in a folder &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2013/01/03/nant-task-behaves-differently-in-092/">NAnt <copy> Task Behaves Differently in 0.92 and Prior Versions</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/11/19/possible-source-of-signtool-bad-format/">Possible Source of the Signtool 'Bad Format' 0x800700C1 Problem</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/10/29/a-solution-can-build-fine-from-inside/">A Solution Can Build Fine From Inside the Visual Studio, but Fail to Build With msbuild.exe</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/08/15/default-attribute-values-for-custom/">Default Attribute Values for Custom NAnt Tasks</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/07/06/generate-solution-file-for-number-of-c/">Generate a Solution File for a Number of C# Projects Files in a Folder</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - Yan Sklyarenko -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

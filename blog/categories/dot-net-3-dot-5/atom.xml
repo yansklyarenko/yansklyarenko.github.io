@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: .net 3.5 | .NET, Sitecore and setup development]]></title>
+  <link href="http://yansklyarenko.github.io/blog/categories/dot-net-3-dot-5/atom.xml" rel="self"/>
+  <link href="http://yansklyarenko.github.io/"/>
+  <updated>2013-07-25T23:37:50+03:00</updated>
+  <id>http://yansklyarenko.github.io/</id>
+  <author>
+    <name><![CDATA[Yan Sklyarenko]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[A solution can build fine from inside the Visual Studio, but fail to build with msbuild.exe]]></title>
+    <link href="http://yansklyarenko.github.io/blog/2012/10/29/a-solution-can-build-fine-from-inside/"/>
+    <updated>2012-10-29T16:35:00+02:00</updated>
+    <id>http://yansklyarenko.github.io/blog/2012/10/29/a-solution-can-build-fine-from-inside</id>
+    <content type="html"><![CDATA[<div class='post'>
+<div dir="ltr" style="text-align: left;" trbidi="on">Today I have faced with an interesting issue. Although I failed to reproduce it on a fresh new project, I think this info might be useful for others.<br />I have a solution which was upgraded from targeting .NET Framework 2.0 to .NET Framework 3.5. I’ve got a patch from a fellow developer to apply to one of the projects of that solution. The patch adds new files as well as modifies existing ones. After the patch application, the solution is successfully built from inside the Visual Studio, but fails to build from the command line with msbuild.exe. The error thrown states that <br /><div class="wlWriterEditableSmartContent" id="scid:f32c3428-b7e9-4f15-a8ea-c502c7ff2e88:5c70df5d-f802-466e-9713-c35fabc6dfbb" style="display: inline; float: none; margin: 0px; padding-bottom: 0px; padding-left: 0px; padding-right: 0px; padding-top: 0px;"><pre class="brush: c#;">“The type or namespace name 'Linq' does not exist in the namespace 'System' ”. </pre></div>The msbuild version is 3.5:<br /><div class="wlWriterEditableSmartContent" id="scid:f32c3428-b7e9-4f15-a8ea-c502c7ff2e88:5d034399-054f-4ebd-aabb-73bf9dab56bf" style="display: inline; float: none; margin: 0px; padding-bottom: 0px; padding-left: 0px; padding-right: 0px; padding-top: 0px;"><pre class="brush: c#;">[exec] Microsoft (R) Build Engine Version 3.5.30729.5420<br />[exec] [Microsoft .NET Framework, Version 2.0.50727.5456]<br />[exec] Copyright (C) Microsoft Corporation 2007. All rights reserved.</pre></div>It turns out <a href="http://connect.microsoft.com/VisualStudio/feedback/details/665406/using-system-linq-without-reference-to-system-core-compiles-in-vs-but-not-with-msbuild-exe" target="_blank">this issue has been met by other people</a>, and even reported to Microsoft. Microsoft suggested to use MSBuild.exe 4.0 to build VS 2010 projects. However, they confirmed it is possible to use MSBuild.exe 3.5&nbsp; - in this case a reference to System.Core (3.5.0.0) must be explicitly added to the csproj file.<br />If you try to add a reference to System.Core from inside the Visual Studio, you’ll get the error saying:<br /><div class="wlWriterEditableSmartContent" id="scid:f32c3428-b7e9-4f15-a8ea-c502c7ff2e88:d25d09ad-d4a7-4cd3-8b89-6959ec9d1e60" style="display: inline; float: none; margin: 0px; padding-bottom: 0px; padding-left: 0px; padding-right: 0px; padding-top: 0px;"><pre class="brush: c#;">"A reference to 'System.Core' could not be added. This component is already automatically referenced by the build system"</pre></div>So, it seems that when you build a solution from inside the Visual Studio, it is capable to automatically load implicitly referenced assemblies. I suppose, MSBuild.exe 4.0 (and even SP1-patched MSBuild.exe 3.5?) can do this as well. Apparently, this has also <a href="http://blog.rlucas.net/bugfix/force-a-reference-to-system-core-in-visual-studio-2010/" target="_blank">turned out to be a known problem</a> – you can’t add that reference from the IDE. Open csproj file in your favorite editor and add this:<br /><div class="wlWriterEditableSmartContent" id="scid:f32c3428-b7e9-4f15-a8ea-c502c7ff2e88:cd2bda3a-a055-467e-85d3-7913a99c7de4" style="display: inline; float: none; margin: 0px; padding-bottom: 0px; padding-left: 0px; padding-right: 0px; padding-top: 0px;"><pre class="brush: xml;">&lt;Reference Include="System.Core" /&gt;</pre></div>After this, the project builds fine in both VS and MSBuild.</div></div>
+
+
+<h2>Comments</h2>
+
+
+<div class='comments'>
+<div class='comment'>
+<div class='author'>Yan Sklyarenko</div>
+<div class='content'>
+You&#39;re welcome! Glad to know it was helpful.</div>
+</div>
+<div class='comment'>
+<div class='author'>Yan Sklyarenko</div>
+<div class='content'>
+Developers, IT specialists</div>
+</div>
+<div class='comment'>
+<div class='author'>Vachel Daniel</div>
+<div class='content'>
+Hey!<br />I was searching for the matter you shared through blog. It is quite interesting and obviously very informative for me. Thanks you very much!<br /><br />Vachel<br /><a href="http://cmscentral.net/" rel="nofollow">.NET Development Chicago</a><br />cmscentral.net<br /></div>
+</div>
+<div class='comment'>
+<div class='author'>Blog OffTheSpeedLimit</div>
+<div class='content'>
+Greetings! What&#39;s your opinion on who are your blog&#39;s average subscribers?</div>
+</div>
+</div>
+
+]]></content>
+  </entry>
+  
+</feed>

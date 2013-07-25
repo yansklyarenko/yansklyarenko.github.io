@@ -1,0 +1,220 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Generate a solution file for a number of C# projects files in a folder - .NET, Sitecore and setup development</title>
+  <meta name="author" content="Yan Sklyarenko">
+
+  
+  <meta name="description" content="Some time ago I wrote my first T4 template which generates a solution (*.sln) file out of a number of C# project (*.cspoj) files, located in a &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://yansklyarenko.github.io/blog/2012/07/06/generate-solution-file-for-number-of-c">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title=".NET, Sitecore and setup development" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">.NET, Sitecore and setup development</a></h1>
+  
+    <h2>This is a port of my blog to the Github pages platform with the help of Octopress.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:yansklyarenko.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Generate a Solution File for a Number of C# Projects Files in a Folder</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-07-06T14:59:00+03:00" pubdate data-updated="true">Jul 6<span>th</span>, 2012</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><div class='post'>
+<div dir="ltr" style="text-align: left;" trbidi="on">Some time ago I wrote my first T4 template which generates a solution (*.sln) file out of a number of C# project (*.cspoj) files, located in a folder and all descendants. Although it turned out not to be necessary to solve the task I was working on, and assuming it’s quite simple, I still decided to share it for further reference. May someone can find it useful. So, below is the entire T4 template, with no extra comments:<br /><div class="wlWriterEditableSmartContent" id="scid:f32c3428-b7e9-4f15-a8ea-c502c7ff2e88:260cba0a-462d-4da5-bf82-2a4da7bd7cdf" style="display: inline; float: none; margin: 0px; padding-bottom: 0px; padding-left: 0px; padding-right: 0px; padding-top: 0px;"><pre class="brush: c#;gutter:false;wrap-lines:false;">Microsoft Visual Studio Solution File, Format Version 11.00<br /># Visual Studio 2010<br />&lt;#@ template language="cs" hostspecific="false" #&gt;<br />&lt;#@ output extension=".sln" #&gt;<br />&lt;#@ parameter name="Folder" type="System.String" #&gt; <br />&lt;#@ assembly name="System.Core" #&gt;<br />&lt;#@ assembly name="System.Xml" #&gt;<br />&lt;#@ assembly name="System.Xml.Linq" #&gt;<br />&lt;#@ import namespace="System.IO" #&gt;<br />&lt;#@ import namespace="System.Linq" #&gt;<br />&lt;#@ import namespace="System.Xml.Linq" #&gt; <br />&lt;#<br />    if (Directory.Exists(Folder))<br />    {<br />        var csprojFiles= Directory.GetFiles(Folder, "*.csproj", SearchOption.AllDirectories);<br />        foreach (var file in csprojFiles)<br />        {<br />            ProjectFileMetaData metaData = new ProjectFileMetaData(file, Folder);<br />            WriteLine("Project(\"{3}\") = \"{0}\", \"{1}\", \"{2}\"",  metaData.Name, metaData.Path, metaData.Id, ProjectFileMetaData.ProjectTypeGuid);<br />            WriteLine("EndProject");<br />        }<br />    }<br />#&gt;<br /><br />&lt;#+ <br />    public class ProjectFileMetaData<br />    {<br />        public static string ProjectTypeGuid = "{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}";<br /><br />        public ProjectFileMetaData(string file, string root)<br />        {<br />            InitProperties(file, root);<br />        }<br /><br />        public string Name { get; set; }<br /><br />        public string Path { get; set; }<br /><br />        public string Id { get; set; }<br /><br />        private void InitProperties(string file, string root)<br />        {<br />            XDocument xDoc = XDocument.Load(file);<br />            XNamespace ns = @"http://schemas.microsoft.com/developer/msbuild/2003";<br />            XElement xElement = xDoc.Root.Elements(XName.Get("PropertyGroup", ns.NamespaceName)).First().Element(XName.Get("ProjectGuid", ns.NamespaceName));<br />            if (xElement != null)<br />            {<br />                this.Id = xElement.Value;<br />            }<br /><br />            this.Path = file.Substring(root.Length).TrimStart(new char[] { '\\' });<br /><br />            this.Name = System.IO.Path.GetFileNameWithoutExtension(file);<br />        }<br />    }<br />#&gt;</pre></div></div></div>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Yan Sklyarenko</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-07-06T14:59:00+03:00" pubdate data-updated="true">Jul 6<span>th</span>, 2012</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/dot-net/'>.NET</a>, <a class='category' href='/blog/categories/c-number/'>C#</a>, <a class='category' href='/blog/categories/t4/'>T4</a>, <a class='category' href='/blog/categories/template/'>template</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://yansklyarenko.github.io/blog/2012/07/06/generate-solution-file-for-number-of-c/" data-via="" data-counturl="http://yansklyarenko.github.io/blog/2012/07/06/generate-solution-file-for-number-of-c/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2012/03/02/simple-batch-script-to-dump-contents-of/" title="Previous Post: A simple batch script to dump the contents of the folder and its subfolders recursively">&laquo; A simple batch script to dump the contents of the folder and its subfolders recursively</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2012/08/15/default-attribute-values-for-custom/" title="Next Post: Default attribute values for custom NAnt tasks">Default attribute values for custom NAnt tasks &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2013/01/03/nant-task-behaves-differently-in-092/">NAnt <copy> Task Behaves Differently in 0.92 and Prior Versions</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/11/19/possible-source-of-signtool-bad-format/">Possible Source of the Signtool 'Bad Format' 0x800700C1 Problem</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/10/29/a-solution-can-build-fine-from-inside/">A Solution Can Build Fine From Inside the Visual Studio, but Fail to Build With msbuild.exe</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/08/15/default-attribute-values-for-custom/">Default Attribute Values for Custom NAnt Tasks</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/07/06/generate-solution-file-for-number-of-c/">Generate a Solution File for a Number of C# Projects Files in a Folder</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - Yan Sklyarenko -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

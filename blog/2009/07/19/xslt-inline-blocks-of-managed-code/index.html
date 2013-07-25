@@ -1,0 +1,220 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>XSLT: inline blocks of managed code - .NET, Sitecore and setup development</title>
+  <meta name="author" content="Yan Sklyarenko">
+
+  
+  <meta name="description" content="It’s not a secret that XSLT supports blocks of code, written in another language, to be used inside the stylesheet. It seems to have been there &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://yansklyarenko.github.io/blog/2009/07/19/xslt-inline-blocks-of-managed-code">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title=".NET, Sitecore and setup development" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">.NET, Sitecore and setup development</a></h1>
+  
+    <h2>This is a port of my blog to the Github pages platform with the help of Octopress.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:yansklyarenko.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">XSLT: Inline Blocks of Managed Code</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2009-07-19T23:24:00+03:00" pubdate data-updated="true">Jul 19<span>th</span>, 2009</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><div class='post'>
+<p>It’s not a secret that XSLT supports <a href="http://www.w3.org/TR/xslt11/#define-extension-functions">blocks of code</a>, written in another language, to be used inside the stylesheet. It seems to have been there from the very beginning – at least, <a href="http://www.w3.org/TR/xslt11/">XSLT 1.1</a> understands it. </p>  <p>However, Microsoft enriched this option with their own element, <a href="http://msdn.microsoft.com/en-us/library/ms256042.aspx">msxsl:script</a>. It offers pretty much the same functionality, but you can also write the code in C# or any other language of .NET platform. XSLT gurus might argue that it is superfluous stuff and it is unnecessary in 99% of cases. Well, as for me, XSLT lacks a number of useful functions in the standard library, such as ToLower/ToUpper, EndWith, etc. You never think about such low level things when programming C#, but you often have to invent a wheel trying to do the same with XSLT.</p>  <p>More details can be found in the <a href="http://msdn.microsoft.com/en-us/library/wxaw5z5e.aspx">official documentation</a>, but here is a brief extract:</p>  <ul>   <li>guess an extra prefix and let XSLT processor know about it:      <br />      <br />&lt;xsl:stylesheet version=&quot;1.0&quot;       <br />&#160; xmlns:xsl=&quot;<a href="http://www.w3.org/1999/XSL/Transform&quot;">http://www.w3.org/1999/XSL/Transform&quot;</a>       <br />&#160; xmlns:msxsl=&quot;urn:schemas-microsoft-com:xslt&quot;       <br />&#160; <strong>xmlns:ext=&quot;</strong><a href="http://my.domain.com/ext&quot;"><strong>http://my.domain.com/ext&quot;</strong></a>&gt;       <br />&#160;&#160; &#8230;       <br />&lt;/xsl:stylesheet&gt;       <br />      <br />Also, pay attention how msxsl prefix is defined – it is required to use msxsl:script syntax.       <br /></li>    <li>code your extension function:      <br />      <br />&lt;msxsl:script language=&quot;<strong>C#&quot;</strong> implements-prefix=&quot;<strong>ext</strong>&quot;&gt;       <br />&#160;&#160; public string ToUpper(string inString)       <br />&#160;&#160; {       <br />&#160;&#160;&#160;&#160;&#160; return inString.ToUpper();       <br />&#160;&#160; }       <br />&lt;/msxsl:script&gt;       <br /></li>    <li>and finally use it:      <br />      <br />&lt;xsl:value-of select=&quot;ext:ToUpper(@Name))&quot;/&gt; </li> </ul>  <p>Obviously, it is not a good idea to write lots of code this way. It makes the XSLT stylesheet larger and a bit harder to maintain. And, according to Microsoft, you should “<a href="http://msdn.microsoft.com/en-us/library/ms256042.aspx">avoid script blocks from XSLT files, because they require loading the script engine multiple times</a>”. Actually, if you created an XSLT stylesheet to fill it with tones of .NET code, you’re definitely doing something wrong. But it seems to be good addition to small, but useful “one-line” operations.</p>  <h4>Sitecore and msxsl:script</h4>  <p>If you plan to take advantage of inline blocks of C# code in Sitecore XSL rendering, you’ll have to do one more step. By default, .NET API to handle the XSL transforms disables the possibility to use msxsl:script. It is probably done for security reason. But the web.config of your Sitecore solution contains the setting <strong>EnableXslScripts</strong>, which you can easily set to true and be happy:</p>  <p>&lt;!&#8211;&#160; ENABLE XSLT SCRIPTS    <br />&#160;&#160;&#160;&#160;&#160; Determine whether XSLT script support should be enabled.     <br />&#160;&#160;&#160;&#160;&#160; If script support is not enabled, it will be an error if the XSLT file contains script blocks.     <br />&#160;&#160;&#160;&#160;&#160; <strong>Default value: false</strong>.     <br />&#8211;&gt;     <br />&lt;setting name=&quot;EnableXslScripts&quot; value=&quot;<strong>true</strong>&quot; /&gt; </p>  <p>The performance seems to be the same for this simple code either written in msxsl:script block, or wrapped into <a href="http://sdn.sitecore.net/upload/sitecore6/61/presentation_component_cookbook_sc61_a4.pdf">XSL extension</a>. So, the choice is yours.</p>  <h4>WiX and msxsl:script</h4>  <p>The <a href="http://wix.sourceforge.net/manual-wix3/heat.htm">heat.exe</a> utility of the WiX toolset has an option to run the harvested authoring against XSLT transform. This is a checkpoint when you can mutate the output before it is done. INHO, it is the most powerful extension option of Heat, because you can do anything with the XML fragment in XSLT.</p>  <p>However, it was a bit disappointing to find out the scripts are disabled by default, and it is not customizable, and the easiest way to fix this is to patch Heat itself and prepare custom WiX build. It would be great if this option is available one day in the base, either as a command line argument, or a configuration setting.</p>  <p>That’s it. If you have some experience with this trick, knowing its pros and cons deeper, share it here. And as usual, any comments are welcome.</p>  <p>P.S. this post was written with the help of Windows Live writer :-)</p>  </div>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Yan Sklyarenko</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2009-07-19T23:24:00+03:00" pubdate data-updated="true">Jul 19<span>th</span>, 2009</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/wix/'>WiX</a>, <a class='category' href='/blog/categories/xslt/'>XSLT</a>, <a class='category' href='/blog/categories/heat/'>heat</a>, <a class='category' href='/blog/categories/sitecore/'>sitecore</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://yansklyarenko.github.io/blog/2009/07/19/xslt-inline-blocks-of-managed-code/" data-via="" data-counturl="http://yansklyarenko.github.io/blog/2009/07/19/xslt-inline-blocks-of-managed-code/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2009/03/22/validating-source-of-treelist/" title="Previous Post: Validating the source of TreeList">&laquo; Validating the source of TreeList</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2009/08/16/warning-to-vbnet-developers/" title="Next Post: A warning to VB.NET developers">A warning to VB.NET developers &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2013/01/03/nant-task-behaves-differently-in-092/">NAnt <copy> Task Behaves Differently in 0.92 and Prior Versions</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/11/19/possible-source-of-signtool-bad-format/">Possible Source of the Signtool 'Bad Format' 0x800700C1 Problem</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/10/29/a-solution-can-build-fine-from-inside/">A Solution Can Build Fine From Inside the Visual Studio, but Fail to Build With msbuild.exe</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/08/15/default-attribute-values-for-custom/">Default Attribute Values for Custom NAnt Tasks</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/07/06/generate-solution-file-for-number-of-c/">Generate a Solution File for a Number of C# Projects Files in a Folder</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - Yan Sklyarenko -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

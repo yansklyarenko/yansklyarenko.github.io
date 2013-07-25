@@ -1,0 +1,243 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Attach / Detach database during installation - .NET, Sitecore and setup development</title>
+  <meta name="author" content="Yan Sklyarenko">
+
+  
+  <meta name="description" content="It seems I have finally managed to implement full database support in my installation program. And it also seems that I stepped on every rake one &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://yansklyarenko.github.io/blog/2009/01/10/attach-detach-database-during">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title=".NET, Sitecore and setup development" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">.NET, Sitecore and setup development</a></h1>
+  
+    <h2>This is a port of my blog to the Github pages platform with the help of Octopress.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:yansklyarenko.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Attach / Detach Database During Installation</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2009-01-10T18:19:00+02:00" pubdate data-updated="true">Jan 10<span>th</span>, 2009</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><div class='post'>
+It seems I have finally managed to implement full database support in my installation program. And it also seems that I stepped on every rake one could imagine in this area. But, the harder the battle, the sweeter the victory. <div><br /></div><div>I had the following requirements: the application is distributed with the MDF/LDF files, which must be attached during installation and detached during uninstallation. Both Windows and SQL authentication must be supported.</div><div><br /></div><div>Fortunately, the kind WiX developers implemented a wonderful SQL extension. So, let&#8217;s take advantage of the sql:SqlDatabase element. The documentation says, it can be placed either under Component, or under Fragment/Module/Product. In the first case the database will always be created when the component is being installed. This doesn&#8217;t suite our needs with attach, so let&#8217;s stick with another option:</div><div><br /></div><div><span class="Apple-style-span"  style="font-family:arial;"><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&lt;fragment&gt;</span></span></span></div><div><span class="Apple-style-span"  style="font-family:arial;"><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&#8230;</span></span></span></div><div><span class="Apple-style-span"  style="font-family:arial;"><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&lt;sql:sqldatabase id=&#8221;SqlMasterDBWinAuth&#8221; server=&#8221;[SQL_SERVER]&#8221; database=&#8221;master&#8221;/&gt;<br /></span></span></span></div><div><span class="Apple-style-span"  style="font-family:arial;"><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&#8230;</span></span></span></div><div><span class="Apple-style-span"  style="font-family:arial;"><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&lt;/fragment&gt;</span></span></span></div><div><br /></div><div>As you can see, we specify the standard Master database in this element. That&#8217;s because the database must exist on the target computer by the moment Windows Installer tries to connect. This syntax will instruct the custom action to open the connection using currently logged-on Windows account. </div><div><br /></div><div>The next step is to provide the appropriate sql:String elements for attach/detach. It is better to put these elements inside the component which installs MDF/LDF files, but this is not the rule. And if you have different conditions for installing the files and running attach, you&#8217;ll have to move the scripts into a separate component.</div><div><br /></div><div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&lt;Component DiskId=&#8221;1&#8221; Id=&#8221;MSSQLCore&#8221; Guid=&#8221;YOURGUID-4E94-4B28-B995-DCBFD50B9F07&#8221;&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&lt;Condition&gt;YOUR CONDITION GOES HERE&lt;/Condition&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&lt;File Id=&#8221;MSSQLCoreFile&#8221; Name=&#8221;$(var.CoreFileName)&#8221; KeyPath=&#8221;yes&#8221; /&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&lt;File Id=&#8221;MSSQLCoreLogFile&#8221; Name=&#8221;$(var.CoreFileLogName)&#8221; /&gt;</span></span></div><div><span class="Apple-style-span" style="COLOR: rgb(51,51,255)"><div><br /></div><div>&lt;sql:SqlString Id=&#8221;DetachCore&#8221; Sequence=&#8221;1&#8221; ContinueOnError=&#8221;yes&#8221; ExecuteOnUninstall=&#8221;yes&#8221; SqlDb=&#8221;SqlMasterDBWinAuth&#8221; SQL=&#8221;EXEC master.dbo.sp_detach_db @dbname = N&#8217;[INSTANCENAME]Core&#8217;, @skipchecks=N&#8217;true&#8217;&#8221;/&gt;</div><div><br /></div><div>&lt;sql:SqlString Id=&#8221;AttachCore&#8221; Sequence=&#8221;2&#8221; ContinueOnError=&#8221;no&#8221; ExecuteOnInstall=&#8221;yes&#8221; SqlDb=&#8221;SqlMasterDBWinAuth&#8221; SQL=&#8221;CREATE DATABASE [\[][INSTANCENAME]Core[\]] ON ( FILENAME = N&#8217;[DB_FOLDER]$(var.CoreFileName)&#8217; ), ( FILENAME = N&#8217;[DB_FOLDER]$(var.CoreFileLogName)&#8217; ) FOR ATTACH&#8221;/&gt;</div><div><br /></div></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&lt;/Component&gt;</span></span></div><div><br /></div><div>At this point I should mention one reef. An SqlString string element also has an attribute SQLUser. If you provide both SqlDb attribute, pointing to the &#8220;WinAuth&#8221; definition of the database, and SqlUser attribute, pointing to the &#8220;sa user&#8221;, it will lead to unpredictable and very strange behavior. I would avoid this. </div><div><br /></div><div>Ok, now we should take care about the rollback actions: during install and uninstall correspondently. It is obvious that RollbackOnInstall should detach databases, if they got installed before failure, and RollbackOnUnistall should attach the databases back, if the failure occurred during uninstall. </div><div><br /></div><div>Thanks to the hint of Rob Mensching in <a href="http://www.mail-archive.com/wix-users@lists.sourceforge.net/msg18212.html">one of his replies to the WiX mailinglist</a>, I managed to overcome another trick. Right after the database is attached, there is sometimes a connection left to this database. I can see this by opening the SQL Management studio and looking at the database status (Normal). If you detach the database in this moment, it flushes the permissions on a physical file to a logon account only. I didn&#8217;t dig very deep into this, it probably corresponds to the <a href="http://msdn.microsoft.com/en-us/library/ms189128.aspx">rules of permissions change during attach/detach</a>. As a result, the windows installer can&#8217;t access the file afterwards, and the uninstallation is rolled back.</div><div><br /></div><div>To fix this, perform &#8220;SET OFFLINE&#8221; query before detaching the database and you&#8217;ll never face with this behavior again.</div><div><br /></div><div>Thus, the final version will look similar to this:</div><div><br /></div><div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&lt;Component DiskId=&#8221;1&#8221; Id=&#8221;MSSQLCore&#8221; Guid=&#8221;YOURGUID-4E94-4B28-B995-DCBFD50B9F07&#8221;&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&lt;Condition&gt;YOUR CONDITION GOES HERE&lt;/Condition&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&lt;File Id=&#8221;MSSQLCoreFile&#8221; Name=&#8221;$(var.CoreFileName)&#8221; KeyPath=&#8221;yes&#8221; /&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&lt;File Id=&#8221;MSSQLCoreLogFile&#8221; Name=&#8221;$(var.CoreFileLogName)&#8221; /&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)"><br /></span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&lt;sql:SqlString Id=&#8221;RollbackDetachCore&#8221; Sequence=&#8221;1&#8221; ContinueOnError=&#8221;yes&#8221; RollbackOnUninstall=&#8221;yes&#8221; SqlDb=&#8221;SqlMasterDBWinAuth&#8221; SQL=&#8221;CREATE DATABASE [\[][INSTANCENAME]Core[\]] ON ( FILENAME = N&#8217;[DB_FOLDER]$(var.CoreFileName)&#8217; ), ( FILENAME = N&#8217;[DB_FOLDER]$(var.CoreFileLogName)&#8217; ) FOR ATTACH&#8221;/&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&lt;sql:SqlString Id=&#8221;OfflineCoreDatabase&#8221; Sequence=&#8221;2&#8221; ContinueOnError=&#8221;yes&#8221; ExecuteOnUninstall=&#8221;yes&#8221; SqlDb=&#8221;SqlMasterDBWinAuth&#8221; SQL=&#8221;ALTER DATABASE [\[][INSTANCENAME]Core[\]] SET OFFLINE WITH ROLLBACK IMMEDIATE&#8221; /&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&lt;sql:SqlString Id=&#8221;DetachCore&#8221; Sequence=&#8221;3&#8221; ContinueOnError=&#8221;yes&#8221; ExecuteOnUninstall=&#8221;yes&#8221; SqlDb=&#8221;SqlMasterDBWinAuth&#8221; SQL=&#8221;EXEC master.dbo.sp_detach_db @dbname = N&#8217;[INSTANCENAME]Core&#8217;, @skipchecks=N&#8217;true&#8217;&#8221;/&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&lt;sql:SqlString Id=&#8221;RollbackAttachCore&#8221; Sequence=&#8221;4&#8221; ContinueOnError=&#8221;yes&#8221; RollbackOnInstall=&#8221;yes&#8221; SqlDb=&#8221;SqlMasterDBWinAuth&#8221; SQL=&#8221;EXEC master.dbo.sp_detach_db @dbname = N&#8217;[INSTANCENAME]Core&#8217;, @skipchecks=N&#8217;true&#8217;&#8221;/&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&lt;sql:SqlString Id=&#8221;AttachCore&#8221; Sequence=&#8221;5&#8221; ContinueOnError=&#8221;no&#8221; ExecuteOnInstall=&#8221;yes&#8221; SqlDb=&#8221;SqlMasterDBWinAuth&#8221; SQL=&#8221;CREATE DATABASE [\[][INSTANCENAME]Core[\]] ON ( FILENAME = N&#8217;[DB_FOLDER]$(var.CoreFileName)&#8217; ), ( FILENAME = N&#8217;[DB_FOLDER]$(var.CoreFileLogName)&#8217; ) FOR ATTACH&#8221;/&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)"><br /></span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&lt;/Component&gt;</span></span></div><div><br /></div></div><div>Ok, but what about Sql Authentication? Well, this requires some kind of duplicating the code. The SqlDb attribute of the SqlString element can&#8217;t accept MSI properties, thus can&#8217;t be dinamically changed during runtime. We must author another element SqlDatabase for referencing it from another set of scripts.</div><div><br /></div><div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&lt;util:User Id=&#8221;SQLUser&#8221; Name=&#8221;[SC_SQL_SERVER_USER]&#8221; Password=&#8221;[SC_SQL_SERVER_PASSWORD]&#8221;/&gt;</span></span></div><div><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&lt;sql:SqlDatabase Id=&#8221;SqlMasterDBWinAuth&#8221; Server=&#8221;[SC_SQL_SERVER]&#8221; Database=&#8221;master&#8221; /&gt;</span><br /></div><div><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&lt;sql:SqlDatabase Id=&#8221;SqlMasterDBSqlAuth&#8221; Server=&#8221;[SC_SQL_SERVER]&#8221; Database=&#8221;master&#8221; User=&#8221;SQLUser&#8221; /&gt;</span><br /></div><div><br /></div></div><div>The first element defines a user to connect to the database. In this example, the username and password are read from the public properties. The user is not created, it is just referenced. The second element should be familiar - it was described above. And the last one differs only in one attribute - SQLUser. </div><div>This does the trick: if you want Windows Authentication way to use, reference SqlMasterDBWinAuth in your scripts, otherwise - use SqlMasterDBWinAuth. Obviously, you need another set of the similar SqlString elements in a different component.</div><div><br /></div><div>Tired? The last thing. </div><div><br /></div><div>If you implemented something similar to what I&#8217;ve described, you should have mentioned that in case of Sql Auth the database is attached as read-only. This happens because the SQL service account (NETWORK SERVICE in my case) doesn&#8217;t have enough permissions to the [DB_FOLDER] and files by the moment attach starts. </div><div>No problem, let&#8217;s assign the necessary rights. Put the following snippet into your component which contains the SqlAuth scripts:</div><div><br /></div><div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&lt;CreateFolder&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&lt;util:PermissionEx GenericAll=&#8221;yes&#8221; User=&#8221;NetworkService&#8221; /&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&lt;/CreateFolder&gt;</span></span></div><div><br /></div></div><div>Note: Don&#8217;t forget to reference WIX_ACCOUNT_NETWORKSERVICE property.</div><div><br /></div><div>But, wait, the ShedSecureObjects is scheduled after the InstallSqlData, this doesn&#8217;t help!</div><div>Right, the sequence should also be changed like this:</div><div><br /></div><div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&lt;InstallExecureSequence&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&#8230;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&lt;Custom Action=&#8221;InstallSqlData&#8221; After=&#8221;SchedSecureObjects&#8221;&gt;NOT SKIPINSTALLSQLDATA AND VersionNT &gt; 400&lt;/Custom&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&#8230;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="COLOR: rgb(51,51,255)">&lt;/InstallExecuteSequence&gt;</span></span></div><div><br /></div></div><div>That&#8217;s it! I know, this can&#8217;t seem easy at first glance, but, as for me, it is much more controlled and customizable, than with InstallShield. I might be wrong, though.</div><div><br /></div><div>Good luck! I would appreciate any comments and notes to this.</div></div></div>
+<h2>Comments</h2>
+<div class='comments'>
+<div class='comment'>
+<div class='author'>Yan Sklyarenko</div>
+<div class='content'>
+The WIX_ACCOUNT_NETWORKSERVICE property is the one populated automatically by WiX custom action. See the Advanced WiX Topics &gt; Standard Custom Actions &gt; OSInfo Custom Actions topic in WiX.chm. <br />The only thing you should do to use this is to reference the property in your WiX source file, just like this:<br /><br />&lt;PropertyRef Id=&quot;WIX_ACCOUNT_NETWORKSERVICE&quot; /&gt;<br /><br />Afterwards, WiX will understand the value &#39;NetworkService&#39; of &#39;User&#39; attribute and map it to the value of WIX_ACCOUNT_NETWORKSERVICE property.<br /><br />And I&#39;m not sure I understood your request to &quot;explain a bit more about the sql auth&quot; :)</div>
+</div>
+<div class='comment'>
+<div class='author'>Anonymous</div>
+<div class='content'>
+Great guide but could you explain a bit more about the sql auth and how you&#39;d set the WIX_ACCOUNT_NETWORKSERVICE property?<br /><br />&quot;I don&#39;t Don&#39;t forget to reference WIX_ACCOUNT_NETWORKSERVICE property.&quot;</div>
+</div>
+<div class='comment'>
+<div class='author'>Yan Sklyarenko</div>
+<div class='content'>
+Glad to know it helped you, Peter!<BR/>Basically, I&#8217;ve just explained my humble experience with this area, and that&#8217;s no doubt your solution will differ. ;-)</div>
+</div>
+<div class='comment'>
+<div class='author'>Anonymous</div>
+<div class='content'>
+Nice guide, saved me some time&#8230;<BR/><BR/>A little twink:<BR/><BR/>As I don&#8217;t want my database files to be deleted at uninstall (to pervent data loss) I have one component for the mdf/ldf files and one for the sql scripts. The component for the database files have the properties NeverOverwrite=&#8221;yes&#8221; and Permanent=&#8221;yes&#8221;.<BR/><BR/>One problem with the component containing the scripts were that I had no proper keypath which gave me problems when I made a major upgrade. My solution to this was to use a (dummy)registry entry as keypath for the component.<BR/><BR/>//Peter Björkman</div>
+</div>
+</div>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Yan Sklyarenko</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2009-01-10T18:19:00+02:00" pubdate data-updated="true">Jan 10<span>th</span>, 2009</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/msi/'>MSI</a>, <a class='category' href='/blog/categories/sql-server/'>SQL Server</a>, <a class='category' href='/blog/categories/wix/'>WiX</a>, <a class='category' href='/blog/categories/windows-installer/'>Windows Installer</a>, <a class='category' href='/blog/categories/attach/'>attach</a>, <a class='category' href='/blog/categories/detach/'>detach</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://yansklyarenko.github.io/blog/2009/01/10/attach-detach-database-during/" data-via="" data-counturl="http://yansklyarenko.github.io/blog/2009/01/10/attach-detach-database-during/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2008/12/30/multiple-instance-installations-and/" title="Previous Post: Multiple instance installations and patching">&laquo; Multiple instance installations and patching</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2009/01/19/iis-extension-website/" title="Next Post: IIS extension: WebSite">IIS extension: WebSite &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2013/01/03/nant-task-behaves-differently-in-092/">NAnt <copy> Task Behaves Differently in 0.92 and Prior Versions</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/11/19/possible-source-of-signtool-bad-format/">Possible Source of the Signtool 'Bad Format' 0x800700C1 Problem</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/10/29/a-solution-can-build-fine-from-inside/">A Solution Can Build Fine From Inside the Visual Studio, but Fail to Build With msbuild.exe</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/08/15/default-attribute-values-for-custom/">Default Attribute Values for Custom NAnt Tasks</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/07/06/generate-solution-file-for-number-of-c/">Generate a Solution File for a Number of C# Projects Files in a Folder</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - Yan Sklyarenko -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,220 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>IIS extension: WebSite - .NET, Sitecore and setup development</title>
+  <meta name="author" content="Yan Sklyarenko">
+
+  
+  <meta name="description" content="Ok, it&#8217;s time for another portion of the installation fun, now about the IIS web sites.The IIS extension in WiX is probably the most tricky &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://yansklyarenko.github.io/blog/2009/01/19/iis-extension-website">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title=".NET, Sitecore and setup development" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">.NET, Sitecore and setup development</a></h1>
+  
+    <h2>This is a port of my blog to the Github pages platform with the help of Octopress.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:yansklyarenko.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">IIS Extension: WebSite</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2009-01-19T22:04:00+02:00" pubdate data-updated="true">Jan 19<span>th</span>, 2009</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><div class='post'>
+Ok, it&#8217;s time for another portion of the installation fun, now about the IIS web sites.<div><br /></div><div>The IIS extension in WiX is probably the most tricky and unobvious. That&#8217;s my personal impression, of course. But, anyway, it gives you an option to tweak any property of a website, virtual directory or web directory. </div><div><br /></div><div>When installing a web application on Windows XP and thus IIS 5.1, it is natural to create an &#8220;ad hoc&#8221; virtual directory during install and remove it on uninstall. That&#8217;s basically quite common case, but what if the application requires to reside under the site root directly, not virtual directory? </div><div><br /></div><div>In this case the root of the Default Web Site should just be switched to the installation directory - nothing is created on install and nothing is removed on uninstall. Let&#8217;s see how this can be done with WiX IIS extension.</div><div><br /></div><div>The iis:WebSite element has two &#8220;modes&#8221;: if it resides under Component element, it is created during install, otherwise it is there just for reference from other elements. Fortunately, it has a special attribute ConfigureIfExists. Setting it to &#8216;yes&#8217; avoids an attempt to create a new site, configuring the existent one instead:</div><div><br /></div><div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">      &lt;Component DiskId=&#8221;1&#8221; Id=&#8221;ModifyIISSite5&#8221; Guid=&#8221;{YOURGUID-2023-4D19-90D2-EE9101C71E44}&#8221; Directory=&#8221;WebsiteFolder&#8221; <span class="Apple-style-span" style="font-weight: bold;">Permanent=&#8221;yes&#8221;</span>&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">         &lt;Condition&gt;IISMAJORVERSION = &#8220;#5&#8221;&lt;/Condition&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">         &lt;iis:WebSite Id=&#8221;IISSite5&#8221; Description=&#8221;[IISSITE_NAME]&#8221; Directory=&#8221;WebsiteFolder&#8221; <span class="Apple-style-span" style="font-weight: bold;">ConfigureIfExists=&#8221;yes&#8221;</span>&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">            &lt;iis:WebAddress Id=&#8221;IISSiteAddress5&#8221; Port=&#8221;[IISSITE_PORT]&#8221;/&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">         &lt;/iis:WebSite&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">      &lt;/Component&gt;</span></span></div><div><br /></div></div><div>Note, that in this case you should make sure you specified the existent website data. The website is uniquely identified by the description, port and header. The first is an attribute of a WebSite element itself, others belong to the child mandatory element WebAddress. </div><div><br /></div><div>The previous snippet highlights another attribute as bold - Permanent=&#8221;yes&#8221;. It makes the hosting component <a href="http://msdn.microsoft.com/en-us/library/aa369530(VS.85).aspx">permanent</a>, thus preventing it from being deleted on uninstall. Internally, the Windows Installer engine just keeps an extra reference to this component forever, thus it reference count is never equal to 0.</div><div><br /></div><div>One last thing I&#8217;d like to point your attention to is a component condition. It uses the property called IISMAJORVERSION. This property, as well as another one called IISMINORVERSION, is brought by the IIS extension. They are populated from the target system registry during the AppSearch action. Before using them in your authoring make sure you add a couple of references:</div><div><br /></div><div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">    &lt;PropertyRef Id=&#8221;IISMAJORVERSION&#8221;/&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">    &lt;PropertyRef Id=&#8221;IISMINORVERSION&#8221;/&gt;</span></span></div><div><br /></div></div><div>That&#8217;s it! As usual, any comments are highly appreciated.</div></div>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Yan Sklyarenko</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2009-01-19T22:04:00+02:00" pubdate data-updated="true">Jan 19<span>th</span>, 2009</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/iis-extension/'>IIS extension</a>, <a class='category' href='/blog/categories/wix/'>WiX</a>, <a class='category' href='/blog/categories/windows-installer/'>Windows Installer</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://yansklyarenko.github.io/blog/2009/01/19/iis-extension-website/" data-via="" data-counturl="http://yansklyarenko.github.io/blog/2009/01/19/iis-extension-website/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2009/01/10/attach-detach-database-during/" title="Previous Post: Attach / Detach database during installation">&laquo; Attach / Detach database during installation</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2009/01/20/iis-extension-webapppool/" title="Next Post: IIS extension: WebAppPool">IIS extension: WebAppPool &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2013/01/03/nant-task-behaves-differently-in-092/">NAnt <copy> Task Behaves Differently in 0.92 and Prior Versions</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/11/19/possible-source-of-signtool-bad-format/">Possible Source of the Signtool 'Bad Format' 0x800700C1 Problem</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/10/29/a-solution-can-build-fine-from-inside/">A Solution Can Build Fine From Inside the Visual Studio, but Fail to Build With msbuild.exe</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/08/15/default-attribute-values-for-custom/">Default Attribute Values for Custom NAnt Tasks</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/07/06/generate-solution-file-for-number-of-c/">Generate a Solution File for a Number of C# Projects Files in a Folder</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - Yan Sklyarenko -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

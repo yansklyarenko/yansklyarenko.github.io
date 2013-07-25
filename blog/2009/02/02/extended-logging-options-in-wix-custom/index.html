@@ -1,0 +1,228 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Extended logging options in WiX custom actions - .NET, Sitecore and setup development</title>
+  <meta name="author" content="Yan Sklyarenko">
+
+  
+  <meta name="description" content="The best and maybe the only way to find out what&#8217;s going wrong with the installation is investigating the MSI log file. Fortunately, the &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://yansklyarenko.github.io/blog/2009/02/02/extended-logging-options-in-wix-custom">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title=".NET, Sitecore and setup development" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">.NET, Sitecore and setup development</a></h1>
+  
+    <h2>This is a port of my blog to the Github pages platform with the help of Octopress.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:yansklyarenko.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Extended Logging Options in WiX Custom Actions</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2009-02-02T22:46:00+02:00" pubdate data-updated="true">Feb 2<span>nd</span>, 2009</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><div class='post'>
+The best and maybe the only way to find out what&#8217;s going wrong with the installation is investigating the MSI log file. Fortunately, the Windows Installer respects log writing very much. You can find the ways to enable logging and different logging options <a href="http://msdn.microsoft.com/en-us/library/aa370536(VS.85).aspx">here</a>.<div><br /></div><div>The verbose log contains all the information MSI can generate. Though it is really useful when it comes to troubleshooting the failed installation, it is quite hard to read, especially for newbies. Again, fortunately, there&#8217;s a super chapter &#8220;Using the Windows Installer log&#8221; in a super book called <a href="http://www.amazon.com/Definitive-Guide-Windows-Installer-Experts/dp/1590592972">&#8220;The Definitive Guide to Windows Installer&#8221; by Phil Wilson</a>, which guides you through the basics of log file reading and understanding.</div><div><br /></div><div>I used to generate the log file with /L*v options, which means verbose. But, if you use WiX custom actions, it turns out that you can make them logging even more verbose.</div><div><br /></div><div>If you browse the WiX source code, you can find the lines like this in its custom actions:</div><div><br /></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">WcaLog(LOGMSG_STANDARD, &#8220;Error: Cannot locate User.User=&#8217;%S&#8217;&#8221;, wzUser);</span></span><br /></div><div><br /></div><div>The first argument is a logging level. It can be </div><div><ul><li>LOGMSG_STANDARD, which is &#8220;write to log whenever informational logging is enabled&#8221;, which in most cases means &#8220;always&#8221;</li><li>LOGMSG_TRACEONLY, which is &#8220;write to log if this WiX build is a DEBUG build&#8221; (is often used internally to dump CustomActionData contents)<br /></li><li>LOGMSG_VERBOSE, which is &#8220;write to log when LOGVERBOSE&#8221;</li></ul><div>Wait a minute, what does the last option means? I&#8217;ve already set the verbose logging by /L*v, but I don&#8217;t see more entries there. Here is the algorithm WiX CA use to know whether to write a log entry marked as LOGMSG_VERBOSE level:</div><div><ul><li>Check if the LOGVERBOSE property is set (can be set in the command-line since it is public)</li><li>Otherwise, check if the MsiLogging property is set (MSI 4.0+)</li><li>Otherwise, check the <a href="http://msdn.microsoft.com/en-us/library/aa369776(VS.85).aspx">logging policy in the registry</a></li></ul><div><br /></div><div>So, the following is the easiest way in my opinion to make your MSI (WiX-based) log file even more verbose:</div><div><br /></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">   msiexec /i package.msi &#8230; LOGVERBOSE=1 /L*v install.log</span></span></div><div><br /></div><div>Hope this helps.<br /></div><div><br /></div><div>P.S. This is just a brief extract of what&#8217;s there in the source code. As usual, code is the best documentation ;-)</div></div></div></div>
+<h2>Comments</h2>
+<div class='comments'>
+<div class='comment'>
+<div class='author'>Nelya Iva</div>
+<div class='content'>
+It is something new for me, thank&#39;s!</div>
+</div>
+</div>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Yan Sklyarenko</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2009-02-02T22:46:00+02:00" pubdate data-updated="true">Feb 2<span>nd</span>, 2009</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/ca/'>CA</a>, <a class='category' href='/blog/categories/msi/'>MSI</a>, <a class='category' href='/blog/categories/wix/'>WiX</a>, <a class='category' href='/blog/categories/windows-installer/'>Windows Installer</a>, <a class='category' href='/blog/categories/custom-action/'>custom action</a>, <a class='category' href='/blog/categories/log/'>log</a>, <a class='category' href='/blog/categories/verbose/'>verbose</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://yansklyarenko.github.io/blog/2009/02/02/extended-logging-options-in-wix-custom/" data-via="" data-counturl="http://yansklyarenko.github.io/blog/2009/02/02/extended-logging-options-in-wix-custom/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2009/01/20/iis-extension-webapppool/" title="Previous Post: IIS extension: WebAppPool">&laquo; IIS extension: WebAppPool</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2009/03/22/validating-source-of-treelist/" title="Next Post: Validating the source of TreeList">Validating the source of TreeList &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2013/01/03/nant-task-behaves-differently-in-092/">NAnt <copy> Task Behaves Differently in 0.92 and Prior Versions</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/11/19/possible-source-of-signtool-bad-format/">Possible Source of the Signtool 'Bad Format' 0x800700C1 Problem</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/10/29/a-solution-can-build-fine-from-inside/">A Solution Can Build Fine From Inside the Visual Studio, but Fail to Build With msbuild.exe</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/08/15/default-attribute-values-for-custom/">Default Attribute Values for Custom NAnt Tasks</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/07/06/generate-solution-file-for-number-of-c/">Generate a Solution File for a Number of C# Projects Files in a Folder</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - Yan Sklyarenko -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>
