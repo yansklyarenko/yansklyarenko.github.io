@@ -1,0 +1,12 @@
+---
+layout: post
+title: "WebDirProperties: AnonymousUser attribute is not obligatory"
+date: 2009-08-18T23:46:00+03:00
+comments: false
+categories:
+ - WiX
+ - IIS extension
+---
+
+<div class='post'>
+<p>When you specify a <em>WebDirProperties</em> element to be used by the sites you install (configure) with WiX, you might also want to allow anonymous access to this site. Fortunately, there’s an attribute <em>AnonymousAccess</em>, which being set to ‘yes’ allows anonymous access to IIS web site.</p>  <p>NOTE: If you don’t address any property of “authorization” group (<em>AnonymousAccess, BasicAuthentication, DigestAuthentication, PassportAuthentication</em> or <em>WindowsAuthentication</em>) in your <em>WebDirProperties</em>, the site inherits those from w3svc root. If you set at least one explicitly, you need to set others the way you wish, because WiX defaults might not work for you. </p>  <p>The wix.chm states that “<a href="http://wix.sourceforge.net/manual-wix3/iis_xsd_webdirproperties.htm">When setting this (AnonymousAccess) to 'yes' you should also provide the user account using the AnonymousUser attribute, and determine what setting to use for the IIsControlledPassword attribute.</a>” But it turns out you are not forced to provide the AnonymousUser attribute and I suppose you never wanted to – you should provide a password as well, but who knows the password of IUSR on a target machine?</p>  <p>Instead, just omit the <em>AnonymousUser</em> attribute and this part of IIS metabase will stay untouched. The username/password will inherit from higher node (again, w3svc). And yes, don’t forget <em>IIsControlledPassword</em>=”yes”.</p>  <p>Hope this helps you tuning the website during the installation.</p>  </div>

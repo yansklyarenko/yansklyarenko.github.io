@@ -1,0 +1,10 @@
+---
+layout: post
+title: "Possible source of the signtool 'bad format' 0x800700C1 problem"
+date: 2012-11-19T17:26:00+02:00
+comments: false
+categories: signtool, 0x800700C1, bad format
+---
+
+<div class='post'>
+<div dir="ltr" style="text-align: left;" trbidi="on">Today I have faced with a weird problem. The operation to sign the EXE file (actually, an installation package) with a valid certificate failed with the following error:<br /><div class="wlWriterEditableSmartContent" id="scid:f32c3428-b7e9-4f15-a8ea-c502c7ff2e88:bc6106fa-3bf6-4da8-a4b3-7f14ff86ba80" style="display: inline; float: none; margin: 0px; padding-bottom: 0px; padding-left: 0px; padding-right: 0px; padding-top: 0px;"><pre class="brush: xml;">[exec] SignTool Error: SignedCode::Sign returned error: 0x800700C1<br />[exec] Either the file being signed or one of the DLL specified by /j switch is not a valid Win32 application.<br />[exec] SignTool Error: An error occurred while attempting to sign: D:\output\setup.exe</pre></div>This kind of error is usually an indication of a format incompatibility, <a href="http://technet.microsoft.com/en-us/library/cc782541(WS.10).aspx" target="_blank">when the bitness of the signtool.exe and the bitness of the EXE in question don't correspond</a>. However, this was not the case.<br /><br />It turns out that the original EXE file was generated incorrectly because of the lack of disk space. That's why it was broken and was recognized by the signtool like a bad format file. After disk cleanup everything worked perfectly and the EXE file was signed correctly.<br /><br />Hope this saves someone some time. </div></div>

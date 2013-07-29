@@ -3,9 +3,9 @@
 # ----------------------- #
 
 url: http://yansklyarenko.github.io
-title: My Octopress Blog
-subtitle: A blogging framework for hackers.
-author: Your Name
+title: .NET, Sitecore and setup development
+subtitle: This is a port of my blog to the Github pages platform with the help of Octopress.
+author: Yan Sklyarenko
 simple_search: http://google.com/search
 description:
 

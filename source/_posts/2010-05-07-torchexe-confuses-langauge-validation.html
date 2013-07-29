@@ -1,0 +1,14 @@
+---
+layout: post
+title: "Torch.exe confuses the language validation and ProductCode validation"
+date: 2010-05-07T19:34:00+03:00
+comments: false
+categories:
+ - MSI
+ - torch
+ - WiX
+ - Windows Installer
+---
+
+<div class='post'>
+<p>This week I faced with another issue with torch.exe. As you might know, there’s a “type” option (-t) to apply a predefined set of validation flags to the generated transform. If you’d like to generate a language transform, you should use “-t language”. It should suppress all the errors plus validate that language in both MSI packages corresponds. But it doesn’t…</p>  <p>The reason is just a simple bug in the tool. When you set “-t language” in the command line, this option is mapped to the TransformFlags.LanguageTransformDefault value. It is a combination of atomic values (those you can set via –serr and -val), and it mistakenly takes “validate product code” bit instead of “validate language bit”. I’ve never noticed this unless my installation uses both instance transforms and language transforms.</p>  <p>The workaround is quite simple: use literally “–serr” and “–val” to achieve the same result. For instance, for language transform it should be:</p>  <p>&#160;&#160;&#160;&#160;&#160;&#160; torch.exe … –serr a –serr b –serr c –serr d –serr e –serr f –val l …</p>  <p>[By the way, does it look too long just for me? I would prefer –serr abcdef :-)]</p>  <p>I’ve also filed an <a href="https://sourceforge.net/tracker/?func=detail&amp;aid=2998229&amp;group_id=105970&amp;atid=642714">issue</a> to the WiX toolset. Hope this can help somebody.</p>  </div>

@@ -1,0 +1,14 @@
+---
+layout: post
+title: "Torch.exe throws scary error message unrelated to the real problem"
+date: 2010-04-14T15:35:00+03:00
+comments: false
+categories:
+ - MSI
+ - torch
+ - WiX
+ - Windows Installer
+---
+
+<div class='post'>
+<p>Today I’ve been working on the localization of my installation project, and I had to create a number of language transforms. The following simple call of torch.exe</p>  <p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; torch -t language setup.msi setup_ru-ru.msi -out mst\ru-ru.mst</p>  <p>returned the scary error message:</p>  <p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; error TRCH0001 : The Windows Installer service failed to start. Contact your support personnel</p>  <p>I’ve seen this kind of errors a couple of times, and it was a serious problem with Windows Installer engine on the target machine in all cases. Once, it indicated that Windows Installer service is completely broken, and only OS reinstall helped (fortunately, it was virtual PC)… But mighty Google gave <a href="http://blogs.msdn.com/pmarcu/archive/2008/05/30/Patching-something-you-didnt-build-with-WiX-using-WiX-.aspx#8920333">a single, but exact hint</a>. It is just a single line, and one can miss the point since that’s another problem which is discussed there. </p>  <p>So, the actual problem: if –out switch points to a folder which doesn’t exist (‘mst’ in this case), torch.exe can’t create it and returns the error. That’s okay behavior to live with, but the error message should be changed to something more appropriate: “The folder ‘mst’ can’t be found. Make sure it exists before referencing in –out switch”. I’ve also created <a href="https://sourceforge.net/tracker/?func=detail&amp;aid=2987095&amp;group_id=105970&amp;atid=642714">an issue</a> to the WiX inbox at sourceforge.net.</p>  <p>Hope this info is helpful until the message text is fixed.</p>  </div>
