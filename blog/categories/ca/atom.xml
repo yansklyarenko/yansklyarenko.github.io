@@ -4,7 +4,7 @@
   <title><![CDATA[Category: CA | .NET, Sitecore and setup development]]></title>
   <link href="http://yansklyarenko.github.io/blog/categories/ca/atom.xml" rel="self"/>
   <link href="http://yansklyarenko.github.io/"/>
-  <updated>2013-07-29T23:40:25+03:00</updated>
+  <updated>2013-07-30T00:01:23+03:00</updated>
   <id>http://yansklyarenko.github.io/</id>
   <author>
     <name><![CDATA[Yan Sklyarenko]]></name>
@@ -20,18 +20,6 @@
     <id>http://yansklyarenko.github.io/blog/2009/02/02/extended-logging-options-in-wix-custom</id>
     <content type="html"><![CDATA[<div class='post'>
 The best and maybe the only way to find out what's going wrong with the installation is investigating the MSI log file. Fortunately, the Windows Installer respects log writing very much. You can find the ways to enable logging and different logging options <a href="http://msdn.microsoft.com/en-us/library/aa370536(VS.85).aspx">here</a>.<div><br /></div><div>The verbose log contains all the information MSI can generate. Though it is really useful when it comes to troubleshooting the failed installation, it is quite hard to read, especially for newbies. Again, fortunately, there's a super chapter "Using the Windows Installer log" in a super book called <a href="http://www.amazon.com/Definitive-Guide-Windows-Installer-Experts/dp/1590592972">"The Definitive Guide to Windows Installer" by Phil Wilson</a>, which guides you through the basics of log file reading and understanding.</div><div><br /></div><div>I used to generate the log file with /L*v options, which means verbose. But, if you use WiX custom actions, it turns out that you can make them logging even more verbose.</div><div><br /></div><div>If you browse the WiX source code, you can find the lines like this in its custom actions:</div><div><br /></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">WcaLog(LOGMSG_STANDARD, "Error: Cannot locate User.User='%S'", wzUser);</span></span><br /></div><div><br /></div><div>The first argument is a logging level. It can be </div><div><ul><li>LOGMSG_STANDARD, which is "write to log whenever informational logging is enabled", which in most cases means "always"</li><li>LOGMSG_TRACEONLY, which is "write to log if this WiX build is a DEBUG build" (is often used internally to dump CustomActionData contents)<br /></li><li>LOGMSG_VERBOSE, which is "write to log when LOGVERBOSE"</li></ul><div>Wait a minute, what does the last option means? I've already set the verbose logging by /L*v, but I don't see more entries there. Here is the algorithm WiX CA use to know whether to write a log entry marked as LOGMSG_VERBOSE level:</div><div><ul><li>Check if the LOGVERBOSE property is set (can be set in the command-line since it is public)</li><li>Otherwise, check if the MsiLogging property is set (MSI 4.0+)</li><li>Otherwise, check the <a href="http://msdn.microsoft.com/en-us/library/aa369776(VS.85).aspx">logging policy in the registry</a></li></ul><div><br /></div><div>So, the following is the easiest way in my opinion to make your MSI (WiX-based) log file even more verbose:</div><div><br /></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">   msiexec /i package.msi ... LOGVERBOSE=1 /L*v install.log</span></span></div><div><br /></div><div>Hope this helps.<br /></div><div><br /></div><div>P.S. This is just a brief extract of what's there in the source code. As usual, code is the best documentation ;-)</div></div></div></div>
-
-
-<h2>Comments</h2>
-
-
-<div class='comments'>
-<div class='comment'>
-<div class='author'>Nelya Iva</div>
-<div class='content'>
-It is something new for me, thank&#39;s!</div>
-</div>
-</div>
 
 ]]></content>
   </entry>
