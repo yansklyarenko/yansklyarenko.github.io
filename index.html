@@ -9,7 +9,7 @@
   <meta name="author" content="Yan Sklyarenko">
 
   
-  <meta name="description" content="When you move from one bug tracking system to another, the accuracy of the process is very important. A single missing point can make a work item &hellip;">
+  <meta name="description" content="Ok, it took me some time and efforts to set up the environment for blogging. Consider this post as a quick instruction to myself for the next time I& &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,96 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/08/01/setting-up-an-existing-blog-on-octopress/">Setting Up an Existing Blog on Octopress</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-08-01T00:18:00+03:00" pubdate data-updated="true">Aug 1<span>st</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Ok, it took me some time and efforts to set up the environment for blogging. Consider this post as a quick instruction to myself for the next time I&rsquo;ll have to do this.</p>
+
+<p>So, there&rsquo;s an existing blog created with <a href="http://octopress.org/">Octopress</a>, hosted on <a href="https://github.com/">Github</a>. The task is to setup a brand new machine to enable smooth blogging experience.</p>
+
+<blockquote><p>Note: just in case you have to create a blog from scratch, follow the official <a href="http://octopress.org/docs/setup/">Octopress docs</a>, it&rsquo;s quite clear.</p></blockquote>
+
+<p>First of all, you should install Ruby. Octopress docs recommend using either rbenv or RVM for this. Both words sound scary, hence don&rsquo;t hesitate to take the easy path and download an installer from <a href="http://dl.bintray.com/oneclick/rubyinstaller/rubyinstaller-1.9.3-p545.exe?direct">here</a>. At the last page of the installation wizard, choose to add Ruby binaries to the <code>PATH</code>:</p>
+
+<p><img src="/images/july2014/install_ruby.png"></p>
+
+<p>When installer completes, check the installed version:</p>
+
+<pre><code>ruby --version
+</code></pre>
+
+<p>Then, clone the repo with the blog from Github. Instead of calling <code>rake setup_github_pages</code> as suggested by the Octopress docs, follow these steps found <a href="http://tech.paulcz.net/2012/12/creating-a-github-pages-blog-with-octopress.html">here</a>. Let&rsquo;s assume we&rsquo;ve done that into <code>blog</code> folder:</p>
+
+<pre><code>git clone git@github.com:username/username.github.com.git blog
+cd blog
+git checkout source
+mkdir _deploy
+cd _deploy
+git init
+git remote add origin git@github.com:username/username.github.com.git
+git pull origin master
+cd ..
+</code></pre>
+
+<p>Now do the following:</p>
+
+<pre><code>gem install bundler
+bundle install
+</code></pre>
+
+<p>This should pull all the dependencies required for the Octopress engine. Here&rsquo;s where I faced with the first inconsistency in the docs &ndash; one of the dependencies (fast-stemmer) fails to install without <a href="https://github.com/downloads/oneclick/rubyinstaller/DevKit-tdm-32-4.5.2-20111229-1559-sfx.exe">the DevKit</a>. Download it and run the installer. The installation process is documented <a href="https://github.com/oneclick/rubyinstaller/wiki/Development-Kit">here</a>, but the quickest way is:</p>
+
+<ul>
+<li>self-extract the archive</li>
+<li><code>cd</code> to that folder</li>
+<li>run <code>ruby dk.rb init</code></li>
+<li>then run <code>ruby dk.rb install</code></li>
+</ul>
+
+
+<p>After this, re-run the <code>bundle install</code> command.</p>
+
+<p>Well, at this point you should be able to create new posts with <code>rake new_post[title]</code> command. Generate the resulting HTML with <code>rake generate</code> and preview it with <code>rake preview</code> to make sure it produces what you expect.</p>
+
+<p><strong><em>An important note about syntax highlighting</em></strong></p>
+
+<p>Octopress uses <a href="http://pygments.org/">Pygments</a> to highlight the code. This is a <a href="https://www.python.org/">Python</a> thing, and obviously you should install Python for this to work. Choose <a href="https://www.python.org/ftp/python/2.7.8/python-2.7.8.msi">2.x version of Python</a> &ndash; the 3.x version doesn&rsquo;t work. This is important: you won&rsquo;t be able to generate HTML from MARKDOWN otherwise.</p>
+
+<p>That&rsquo;s it! Hope this will save me some time in future.</p>
+
+<blockquote><p>And by the way, this all is written with <a href="https://stackedit.io/">StackEdit</a> &ndash; a highly recommended online markdown editor.</p></blockquote>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -472,43 +562,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/02/18/moving-to-dotnetinstaller-launch/">Moving to dotNetInstaller: Launch Conditions</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2011-02-18T15:59:00+02:00" pubdate data-updated="true">Feb 18<span>th</span>, 2011</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><div class='post'>
-<p>In the <a href="http://ysdevlog.blogspot.com/2011/01/moving-to-dotnetinstaller-simplest-case.html">previous post</a> I’ve described how to implement the simplest use case of a bootstrapper: create a single EXE file and run the actual installation after extraction. Today I’d like to go further and illustrate more production-like situation. </p>  <p>Ok, imagine that you’d like to add some checks to your installation package, and run the actual installation only if all those checks pass. This scenario has its own term: adding launch conditions. Launch condition is basically a statement which evaluates to either true, or false. In case it’s false, and the check is critical for the further installation, you terminate the installation process, as a rule. Otherwise, you let it do the job.</p>  <p>The <a href="http://dotnetinstaller.codeplex.com/">dotNetInstaller</a> has a conception called Installed Checks. It can check various areas, like system registry, files or directories. It is only allowed to place installed checks under components. In the <a href="http://ysdevlog.blogspot.com/2011/01/moving-to-dotnetinstaller-simplest-case.html">simplest scenario</a> we avoided using components, relying just on the install complete command. Components refer to separate independent parts of your installation package. There are various types of components – dotNetInstaller help file explains them all pretty good. So, my first guess was to add a single component of type “exe”, move my embedded files there and add a number of installed checks to it for various prerequisites I require. Something like this:</p>  <p><a href="http://lh4.ggpht.com/_dqWPbhO6dtA/TV57QKK5n-I/AAAAAAAAAaY/64MkgfdtQ4s/s1600-h/DNI_prerequisite_wrong3.png"><img style="background-image: none; border-right-width: 0px; padding-left: 0px; padding-right: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px; padding-top: 0px" title="DNI_prerequisite_wrong" border="0" alt="DNI_prerequisite_wrong" src="http://lh6.ggpht.com/_dqWPbhO6dtA/TV57QlM1xZI/AAAAAAAAAac/YiTgeNRz_NU/DNI_prerequisite_wrong_thumb1.png?imgmax=800" width="929" height="604" /></a></p>  <p>But my assumption was not correct. The trick is that installed check (or a combination of those) placed under a component defines <strong><span >if this very component is installed</span></strong>. In other words, the most “supported” use case of dotNetInstaller is when you add all the components you need into your final package, and each of them verifies its own presence on the target machine. As a result of such verification, a component decides whether to install or not. </p>  <p>A quick search on <a href="http://codeplex.com/">codeplex.com</a> discussions gave me a link to the <a href="http://dotnetinstaller.codeplex.com/workitem/6387">appropriate feature request</a>, which proved my assumption it’s not supported out of the box today. However, there is a workaround.</p>  <p>For each of the launch conditions a separate component should be declared. The trick is such components won’t actually install anything, so we’ll call them “fake” components. A component has a property called “failed_exec_command_continue”. It contains a message to be shown to the user in case a component failed to install, so put the appropriate message there, for instance, “.NET 3.5 SP1 is not installed. The installation program will terminate”. Make sure that both “allow_continue_on_error” and “default_continue_on_error” are set to False – otherwise a user will be presented with a prompt box, instead of a simple message box. Finally, put non-existing executable to the “executable” property, e.g. “fake.exe”. Now it’s time to add a required number and combination of installed checks to this fake component, which will actually do the job. Here’s what we get at the end of this shaman dancing:</p>  <p><a href="http://lh3.ggpht.com/_dqWPbhO6dtA/TV57ROn0EgI/AAAAAAAAAag/N6dFGabezTY/s1600-h/DNI_prerequisite_right3.png"><img style="background-image: none; border-right-width: 0px; padding-left: 0px; padding-right: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px; padding-top: 0px" title="DNI_prerequisite_right" border="0" alt="DNI_prerequisite_right" src="http://lh4.ggpht.com/_dqWPbhO6dtA/TV57RswTQ-I/AAAAAAAAAak/aiwI_JvgIFw/DNI_prerequisite_right_thumb1.png?imgmax=800" width="929" height="604" /></a></p>  <p>So, how does this work? The dotNetInstaller starts the installation from the .NET (3.5 SP1) component and the first thing it evaluates the installed checks. If the evaluation succeeds, in our sample this means that the .NET 3.5 SP1 is present on the target machine. In terms of dotNetInstaller, this means that a component we called “.NET (3.5 SP1)” is installed and we do not trigger its installation. Otherwise, if the evaluation fails, this means that the component is not present and dotNetInstaller starts its installation. It will try to call “fake.exe”, which <strong>does not exist</strong>, and will show a message. As long as we forbad the rest of the installation to continue, it will terminate. Exactly what we need!</p>  <p>Note however, that the described behavior looks that good <strong><span >in Basic UI mode</span></strong>. The error of failed component is just logged to the log file, and no more annoying dialogs are displayed.</p>  <p>If you try this out, you’ll notice one strange little thing with message boxes. In the next blog post I’ll tell you what it is, and how to handle it. And this will be the end of the trilogy. :-)</p></div>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -524,6 +577,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2014/08/01/setting-up-an-existing-blog-on-octopress/">Setting up an existing blog on Octopress</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/07/31/migrate-attachments-from-ontime-to-tfs/">Migrate attachments from OnTime to TFS</a>
       </li>
     
@@ -537,10 +594,6 @@
     
       <li class="post">
         <a href="/blog/2012/10/29/a-solution-can-build-fine-from-inside/">A solution can build fine from inside the Visual Studio, but fail to build with msbuild.exe</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2012/08/15/default-attribute-values-for-custom/">Default attribute values for custom NAnt tasks</a>
       </li>
     
   </ul>

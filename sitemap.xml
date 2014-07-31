@@ -129,12 +129,18 @@
         <lastmod>2014-07-31T23:32:58+03:00</lastmod>
     </url>
     <url>
+        <loc>
+            http://yansklyarenko.github.io/blog/2014/08/01/setting-up-an-existing-blog-on-octopress/
+        </loc>
+        <lastmod>2014-08-01T00:28:49+03:00</lastmod>
+    </url>
+    <url>
         <loc>http://yansklyarenko.github.io/blog/archives/</loc>
-        <lastmod>2014-07-31T23:32:58+03:00</lastmod>
+        <lastmod>2014-08-01T00:28:49+03:00</lastmod>
     </url>
     <url>
         <loc>http://yansklyarenko.github.io/</loc>
-        <lastmod>2014-07-31T23:32:58+03:00</lastmod>
+        <lastmod>2014-08-01T00:28:49+03:00</lastmod>
     </url>
     <url>
         <loc>http://yansklyarenko.github.io/robots.txt</loc>

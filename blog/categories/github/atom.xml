@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: github | .NET, Sitecore and setup development]]></title>
+  <link href="http://yansklyarenko.github.io/blog/categories/github/atom.xml" rel="self"/>
+  <link href="http://yansklyarenko.github.io/"/>
+  <updated>2014-08-01T00:29:06+03:00</updated>
+  <id>http://yansklyarenko.github.io/</id>
+  <author>
+    <name><![CDATA[Yan Sklyarenko]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Setting up an existing blog on Octopress]]></title>
+    <link href="http://yansklyarenko.github.io/blog/2014/08/01/setting-up-an-existing-blog-on-octopress/"/>
+    <updated>2014-08-01T00:18:00+03:00</updated>
+    <id>http://yansklyarenko.github.io/blog/2014/08/01/setting-up-an-existing-blog-on-octopress</id>
+    <content type="html"><![CDATA[<p>Ok, it took me some time and efforts to set up the environment for blogging. Consider this post as a quick instruction to myself for the next time I&rsquo;ll have to do this.</p>
+
+<p>So, there&rsquo;s an existing blog created with <a href="http://octopress.org/">Octopress</a>, hosted on <a href="https://github.com/">Github</a>. The task is to setup a brand new machine to enable smooth blogging experience.</p>
+
+<blockquote><p>Note: just in case you have to create a blog from scratch, follow the official <a href="http://octopress.org/docs/setup/">Octopress docs</a>, it&rsquo;s quite clear.</p></blockquote>
+
+<p>First of all, you should install Ruby. Octopress docs recommend using either rbenv or RVM for this. Both words sound scary, hence don&rsquo;t hesitate to take the easy path and download an installer from <a href="http://dl.bintray.com/oneclick/rubyinstaller/rubyinstaller-1.9.3-p545.exe?direct">here</a>. At the last page of the installation wizard, choose to add Ruby binaries to the <code>PATH</code>:</p>
+
+<p><img src="/images/july2014/install_ruby.png"></p>
+
+<p>When installer completes, check the installed version:</p>
+
+<pre><code>ruby --version
+</code></pre>
+
+<p>Then, clone the repo with the blog from Github. Instead of calling <code>rake setup_github_pages</code> as suggested by the Octopress docs, follow these steps found <a href="http://tech.paulcz.net/2012/12/creating-a-github-pages-blog-with-octopress.html">here</a>. Let&rsquo;s assume we&rsquo;ve done that into <code>blog</code> folder:</p>
+
+<pre><code>git clone git@github.com:username/username.github.com.git blog
+cd blog
+git checkout source
+mkdir _deploy
+cd _deploy
+git init
+git remote add origin git@github.com:username/username.github.com.git
+git pull origin master
+cd ..
+</code></pre>
+
+<p>Now do the following:</p>
+
+<pre><code>gem install bundler
+bundle install
+</code></pre>
+
+<p>This should pull all the dependencies required for the Octopress engine. Here&rsquo;s where I faced with the first inconsistency in the docs &ndash; one of the dependencies (fast-stemmer) fails to install without <a href="https://github.com/downloads/oneclick/rubyinstaller/DevKit-tdm-32-4.5.2-20111229-1559-sfx.exe">the DevKit</a>. Download it and run the installer. The installation process is documented <a href="https://github.com/oneclick/rubyinstaller/wiki/Development-Kit">here</a>, but the quickest way is:</p>
+
+<ul>
+<li>self-extract the archive</li>
+<li><code>cd</code> to that folder</li>
+<li>run <code>ruby dk.rb init</code></li>
+<li>then run <code>ruby dk.rb install</code></li>
+</ul>
+
+
+<p>After this, re-run the <code>bundle install</code> command.</p>
+
+<p>Well, at this point you should be able to create new posts with <code>rake new_post[title]</code> command. Generate the resulting HTML with <code>rake generate</code> and preview it with <code>rake preview</code> to make sure it produces what you expect.</p>
+
+<p><strong><em>An important note about syntax highlighting</em></strong></p>
+
+<p>Octopress uses <a href="http://pygments.org/">Pygments</a> to highlight the code. This is a <a href="https://www.python.org/">Python</a> thing, and obviously you should install Python for this to work. Choose <a href="https://www.python.org/ftp/python/2.7.8/python-2.7.8.msi">2.x version of Python</a> &ndash; the 3.x version doesn&rsquo;t work. This is important: you won&rsquo;t be able to generate HTML from MARKDOWN otherwise.</p>
+
+<p>That&rsquo;s it! Hope this will save me some time in future.</p>
+
+<blockquote><p>And by the way, this all is written with <a href="https://stackedit.io/">StackEdit</a> &ndash; a highly recommended online markdown editor.</p></blockquote>
+]]></content>
+  </entry>
+  
+</feed>

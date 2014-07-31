@@ -1,0 +1,275 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Setting up an existing blog on Octopress - .NET, Sitecore and setup development</title>
+  <meta name="author" content="Yan Sklyarenko">
+
+  
+  <meta name="description" content="Ok, it took me some time and efforts to set up the environment for blogging. Consider this post as a quick instruction to myself for the next time I& &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://yansklyarenko.github.io/blog/2014/08/01/setting-up-an-existing-blog-on-octopress">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title=".NET, Sitecore and setup development" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+  
+
+</head>
+
+<body   class="collapse-sidebar sidebar-footer" >
+  <header role="banner"><hgroup>
+  <h1><a href="/">.NET, Sitecore and setup development</a></h1>
+  
+    <h2>This blog is used as a memory dump of random thoughts and interesting facts about different things in the world of IT.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:yansklyarenko.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Setting Up an Existing Blog on Octopress</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-08-01T00:18:00+03:00" pubdate data-updated="true">Aug 1<span>st</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>Ok, it took me some time and efforts to set up the environment for blogging. Consider this post as a quick instruction to myself for the next time I&rsquo;ll have to do this.</p>
+
+<p>So, there&rsquo;s an existing blog created with <a href="http://octopress.org/">Octopress</a>, hosted on <a href="https://github.com/">Github</a>. The task is to setup a brand new machine to enable smooth blogging experience.</p>
+
+<blockquote><p>Note: just in case you have to create a blog from scratch, follow the official <a href="http://octopress.org/docs/setup/">Octopress docs</a>, it&rsquo;s quite clear.</p></blockquote>
+
+<p>First of all, you should install Ruby. Octopress docs recommend using either rbenv or RVM for this. Both words sound scary, hence don&rsquo;t hesitate to take the easy path and download an installer from <a href="http://dl.bintray.com/oneclick/rubyinstaller/rubyinstaller-1.9.3-p545.exe?direct">here</a>. At the last page of the installation wizard, choose to add Ruby binaries to the <code>PATH</code>:</p>
+
+<p><img src="/images/july2014/install_ruby.png"></p>
+
+<p>When installer completes, check the installed version:</p>
+
+<pre><code>ruby --version
+</code></pre>
+
+<p>Then, clone the repo with the blog from Github. Instead of calling <code>rake setup_github_pages</code> as suggested by the Octopress docs, follow these steps found <a href="http://tech.paulcz.net/2012/12/creating-a-github-pages-blog-with-octopress.html">here</a>. Let&rsquo;s assume we&rsquo;ve done that into <code>blog</code> folder:</p>
+
+<pre><code>git clone git@github.com:username/username.github.com.git blog
+cd blog
+git checkout source
+mkdir _deploy
+cd _deploy
+git init
+git remote add origin git@github.com:username/username.github.com.git
+git pull origin master
+cd ..
+</code></pre>
+
+<p>Now do the following:</p>
+
+<pre><code>gem install bundler
+bundle install
+</code></pre>
+
+<p>This should pull all the dependencies required for the Octopress engine. Here&rsquo;s where I faced with the first inconsistency in the docs &ndash; one of the dependencies (fast-stemmer) fails to install without <a href="https://github.com/downloads/oneclick/rubyinstaller/DevKit-tdm-32-4.5.2-20111229-1559-sfx.exe">the DevKit</a>. Download it and run the installer. The installation process is documented <a href="https://github.com/oneclick/rubyinstaller/wiki/Development-Kit">here</a>, but the quickest way is:</p>
+
+<ul>
+<li>self-extract the archive</li>
+<li><code>cd</code> to that folder</li>
+<li>run <code>ruby dk.rb init</code></li>
+<li>then run <code>ruby dk.rb install</code></li>
+</ul>
+
+
+<p>After this, re-run the <code>bundle install</code> command.</p>
+
+<p>Well, at this point you should be able to create new posts with <code>rake new_post[title]</code> command. Generate the resulting HTML with <code>rake generate</code> and preview it with <code>rake preview</code> to make sure it produces what you expect.</p>
+
+<p><strong><em>An important note about syntax highlighting</em></strong></p>
+
+<p>Octopress uses <a href="http://pygments.org/">Pygments</a> to highlight the code. This is a <a href="https://www.python.org/">Python</a> thing, and obviously you should install Python for this to work. Choose <a href="https://www.python.org/ftp/python/2.7.8/python-2.7.8.msi">2.x version of Python</a> &ndash; the 3.x version doesn&rsquo;t work. This is important: you won&rsquo;t be able to generate HTML from MARKDOWN otherwise.</p>
+
+<p>That&rsquo;s it! Hope this will save me some time in future.</p>
+
+<blockquote><p>And by the way, this all is written with <a href="https://stackedit.io/">StackEdit</a> &ndash; a highly recommended online markdown editor.</p></blockquote>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Yan Sklyarenko</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-08-01T00:18:00+03:00" pubdate data-updated="true">Aug 1<span>st</span>, 2014</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/blog/'>blog</a>, <a class='category' href='/blog/categories/github/'>github</a>, <a class='category' href='/blog/categories/octopress/'>octopress</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://yansklyarenko.github.io/blog/2014/08/01/setting-up-an-existing-blog-on-octopress/" data-via="" data-counturl="http://yansklyarenko.github.io/blog/2014/08/01/setting-up-an-existing-blog-on-octopress/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2014/07/31/migrate-attachments-from-ontime-to-tfs/" title="Previous Post: Migrate attachments from OnTime to TFS">&laquo; Migrate attachments from OnTime to TFS</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/08/01/setting-up-an-existing-blog-on-octopress/">Setting up an existing blog on Octopress</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/07/31/migrate-attachments-from-ontime-to-tfs/">Migrate attachments from OnTime to TFS</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/01/03/nant-task-behaves-differently-in-092/">NAnt <copy> task behaves differently in 0.92 and prior versions</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/11/19/possible-source-of-signtool-bad-format/">Possible source of the signtool 'bad format' 0x800700C1 problem</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/10/29/a-solution-can-build-fine-from-inside/">A solution can build fine from inside the Visual Studio, but fail to build with msbuild.exe</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - Yan Sklyarenko -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

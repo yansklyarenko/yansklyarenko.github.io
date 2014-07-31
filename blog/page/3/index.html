@@ -9,7 +9,7 @@
   <meta name="author" content="Yan Sklyarenko">
 
   
-  <meta name="description" content="Another challenge - another piece of fun with WiX. Imagine the following requirement: the installation program must install an application pool on &hellip;">
+  <meta name="description" content="The best and maybe the only way to find out what&#8217;s going wrong with the installation is investigating the MSI log file. Fortunately, the &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,43 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2009/02/02/extended-logging-options-in-wix-custom/">Extended Logging Options in WiX Custom Actions</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2009-02-02T22:46:00+02:00" pubdate data-updated="true">Feb 2<span>nd</span>, 2009</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><div class='post'>
+The best and maybe the only way to find out what&#8217;s going wrong with the installation is investigating the MSI log file. Fortunately, the Windows Installer respects log writing very much. You can find the ways to enable logging and different logging options <a href="http://msdn.microsoft.com/en-us/library/aa370536(VS.85).aspx">here</a>.<div><br /></div><div>The verbose log contains all the information MSI can generate. Though it is really useful when it comes to troubleshooting the failed installation, it is quite hard to read, especially for newbies. Again, fortunately, there&#8217;s a super chapter &#8220;Using the Windows Installer log&#8221; in a super book called <a href="http://www.amazon.com/Definitive-Guide-Windows-Installer-Experts/dp/1590592972">&#8220;The Definitive Guide to Windows Installer&#8221; by Phil Wilson</a>, which guides you through the basics of log file reading and understanding.</div><div><br /></div><div>I used to generate the log file with /L*v options, which means verbose. But, if you use WiX custom actions, it turns out that you can make them logging even more verbose.</div><div><br /></div><div>If you browse the WiX source code, you can find the lines like this in its custom actions:</div><div><br /></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">WcaLog(LOGMSG_STANDARD, &#8220;Error: Cannot locate User.User=&#8217;%S&#8217;&#8221;, wzUser);</span></span><br /></div><div><br /></div><div>The first argument is a logging level. It can be </div><div><ul><li>LOGMSG_STANDARD, which is &#8220;write to log whenever informational logging is enabled&#8221;, which in most cases means &#8220;always&#8221;</li><li>LOGMSG_TRACEONLY, which is &#8220;write to log if this WiX build is a DEBUG build&#8221; (is often used internally to dump CustomActionData contents)<br /></li><li>LOGMSG_VERBOSE, which is &#8220;write to log when LOGVERBOSE&#8221;</li></ul><div>Wait a minute, what does the last option means? I&#8217;ve already set the verbose logging by /L*v, but I don&#8217;t see more entries there. Here is the algorithm WiX CA use to know whether to write a log entry marked as LOGMSG_VERBOSE level:</div><div><ul><li>Check if the LOGVERBOSE property is set (can be set in the command-line since it is public)</li><li>Otherwise, check if the MsiLogging property is set (MSI 4.0+)</li><li>Otherwise, check the <a href="http://msdn.microsoft.com/en-us/library/aa369776(VS.85).aspx">logging policy in the registry</a></li></ul><div><br /></div><div>So, the following is the easiest way in my opinion to make your MSI (WiX-based) log file even more verbose:</div><div><br /></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">   msiexec /i package.msi &#8230; LOGVERBOSE=1 /L*v install.log</span></span></div><div><br /></div><div>Hope this helps.<br /></div><div><br /></div><div>P.S. This is just a brief extract of what&#8217;s there in the source code. As usual, code is the best documentation ;-)</div></div></div></div>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -229,6 +266,10 @@ Well, this is the first message to my first weblog, and it should be outstanding
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2014/08/01/setting-up-an-existing-blog-on-octopress/">Setting up an existing blog on Octopress</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/07/31/migrate-attachments-from-ontime-to-tfs/">Migrate attachments from OnTime to TFS</a>
       </li>
     
@@ -242,10 +283,6 @@ Well, this is the first message to my first weblog, and it should be outstanding
     
       <li class="post">
         <a href="/blog/2012/10/29/a-solution-can-build-fine-from-inside/">A solution can build fine from inside the Visual Studio, but fail to build with msbuild.exe</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2012/08/15/default-attribute-values-for-custom/">Default attribute values for custom NAnt tasks</a>
       </li>
     
   </ul>

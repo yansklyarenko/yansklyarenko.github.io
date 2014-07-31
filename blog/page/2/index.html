@@ -9,7 +9,7 @@
   <meta name="author" content="Yan Sklyarenko">
 
   
-  <meta name="description" content="I’ve been playing with one of the most popular bootstrapper applications available as free and open source tool – dotNetInstaller. On one hand, &hellip;">
+  <meta name="description" content="In the previous post I’ve described how to implement the simplest use case of a bootstrapper: create a single EXE file and run the actual &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,43 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/02/18/moving-to-dotnetinstaller-launch/">Moving to dotNetInstaller: Launch Conditions</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2011-02-18T15:59:00+02:00" pubdate data-updated="true">Feb 18<span>th</span>, 2011</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><div class='post'>
+<p>In the <a href="http://ysdevlog.blogspot.com/2011/01/moving-to-dotnetinstaller-simplest-case.html">previous post</a> I’ve described how to implement the simplest use case of a bootstrapper: create a single EXE file and run the actual installation after extraction. Today I’d like to go further and illustrate more production-like situation. </p>  <p>Ok, imagine that you’d like to add some checks to your installation package, and run the actual installation only if all those checks pass. This scenario has its own term: adding launch conditions. Launch condition is basically a statement which evaluates to either true, or false. In case it’s false, and the check is critical for the further installation, you terminate the installation process, as a rule. Otherwise, you let it do the job.</p>  <p>The <a href="http://dotnetinstaller.codeplex.com/">dotNetInstaller</a> has a conception called Installed Checks. It can check various areas, like system registry, files or directories. It is only allowed to place installed checks under components. In the <a href="http://ysdevlog.blogspot.com/2011/01/moving-to-dotnetinstaller-simplest-case.html">simplest scenario</a> we avoided using components, relying just on the install complete command. Components refer to separate independent parts of your installation package. There are various types of components – dotNetInstaller help file explains them all pretty good. So, my first guess was to add a single component of type “exe”, move my embedded files there and add a number of installed checks to it for various prerequisites I require. Something like this:</p>  <p><a href="http://lh4.ggpht.com/_dqWPbhO6dtA/TV57QKK5n-I/AAAAAAAAAaY/64MkgfdtQ4s/s1600-h/DNI_prerequisite_wrong3.png"><img style="background-image: none; border-right-width: 0px; padding-left: 0px; padding-right: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px; padding-top: 0px" title="DNI_prerequisite_wrong" border="0" alt="DNI_prerequisite_wrong" src="http://lh6.ggpht.com/_dqWPbhO6dtA/TV57QlM1xZI/AAAAAAAAAac/YiTgeNRz_NU/DNI_prerequisite_wrong_thumb1.png?imgmax=800" width="929" height="604" /></a></p>  <p>But my assumption was not correct. The trick is that installed check (or a combination of those) placed under a component defines <strong><span >if this very component is installed</span></strong>. In other words, the most “supported” use case of dotNetInstaller is when you add all the components you need into your final package, and each of them verifies its own presence on the target machine. As a result of such verification, a component decides whether to install or not. </p>  <p>A quick search on <a href="http://codeplex.com/">codeplex.com</a> discussions gave me a link to the <a href="http://dotnetinstaller.codeplex.com/workitem/6387">appropriate feature request</a>, which proved my assumption it’s not supported out of the box today. However, there is a workaround.</p>  <p>For each of the launch conditions a separate component should be declared. The trick is such components won’t actually install anything, so we’ll call them “fake” components. A component has a property called “failed_exec_command_continue”. It contains a message to be shown to the user in case a component failed to install, so put the appropriate message there, for instance, “.NET 3.5 SP1 is not installed. The installation program will terminate”. Make sure that both “allow_continue_on_error” and “default_continue_on_error” are set to False – otherwise a user will be presented with a prompt box, instead of a simple message box. Finally, put non-existing executable to the “executable” property, e.g. “fake.exe”. Now it’s time to add a required number and combination of installed checks to this fake component, which will actually do the job. Here’s what we get at the end of this shaman dancing:</p>  <p><a href="http://lh3.ggpht.com/_dqWPbhO6dtA/TV57ROn0EgI/AAAAAAAAAag/N6dFGabezTY/s1600-h/DNI_prerequisite_right3.png"><img style="background-image: none; border-right-width: 0px; padding-left: 0px; padding-right: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px; padding-top: 0px" title="DNI_prerequisite_right" border="0" alt="DNI_prerequisite_right" src="http://lh4.ggpht.com/_dqWPbhO6dtA/TV57RswTQ-I/AAAAAAAAAak/aiwI_JvgIFw/DNI_prerequisite_right_thumb1.png?imgmax=800" width="929" height="604" /></a></p>  <p>So, how does this work? The dotNetInstaller starts the installation from the .NET (3.5 SP1) component and the first thing it evaluates the installed checks. If the evaluation succeeds, in our sample this means that the .NET 3.5 SP1 is present on the target machine. In terms of dotNetInstaller, this means that a component we called “.NET (3.5 SP1)” is installed and we do not trigger its installation. Otherwise, if the evaluation fails, this means that the component is not present and dotNetInstaller starts its installation. It will try to call “fake.exe”, which <strong>does not exist</strong>, and will show a message. As long as we forbad the rest of the installation to continue, it will terminate. Exactly what we need!</p>  <p>Note however, that the described behavior looks that good <strong><span >in Basic UI mode</span></strong>. The error of failed component is just logged to the log file, and no more annoying dialogs are displayed.</p>  <p>If you try this out, you’ll notice one strange little thing with message boxes. In the next blog post I’ll tell you what it is, and how to handle it. And this will be the end of the trilogy. :-)</p></div>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -399,43 +436,6 @@ Sitecore 6 validation was designed to validate the field values. Recently, I als
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2009/02/02/extended-logging-options-in-wix-custom/">Extended Logging Options in WiX Custom Actions</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2009-02-02T22:46:00+02:00" pubdate data-updated="true">Feb 2<span>nd</span>, 2009</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><div class='post'>
-The best and maybe the only way to find out what&#8217;s going wrong with the installation is investigating the MSI log file. Fortunately, the Windows Installer respects log writing very much. You can find the ways to enable logging and different logging options <a href="http://msdn.microsoft.com/en-us/library/aa370536(VS.85).aspx">here</a>.<div><br /></div><div>The verbose log contains all the information MSI can generate. Though it is really useful when it comes to troubleshooting the failed installation, it is quite hard to read, especially for newbies. Again, fortunately, there&#8217;s a super chapter &#8220;Using the Windows Installer log&#8221; in a super book called <a href="http://www.amazon.com/Definitive-Guide-Windows-Installer-Experts/dp/1590592972">&#8220;The Definitive Guide to Windows Installer&#8221; by Phil Wilson</a>, which guides you through the basics of log file reading and understanding.</div><div><br /></div><div>I used to generate the log file with /L*v options, which means verbose. But, if you use WiX custom actions, it turns out that you can make them logging even more verbose.</div><div><br /></div><div>If you browse the WiX source code, you can find the lines like this in its custom actions:</div><div><br /></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">WcaLog(LOGMSG_STANDARD, &#8220;Error: Cannot locate User.User=&#8217;%S&#8217;&#8221;, wzUser);</span></span><br /></div><div><br /></div><div>The first argument is a logging level. It can be </div><div><ul><li>LOGMSG_STANDARD, which is &#8220;write to log whenever informational logging is enabled&#8221;, which in most cases means &#8220;always&#8221;</li><li>LOGMSG_TRACEONLY, which is &#8220;write to log if this WiX build is a DEBUG build&#8221; (is often used internally to dump CustomActionData contents)<br /></li><li>LOGMSG_VERBOSE, which is &#8220;write to log when LOGVERBOSE&#8221;</li></ul><div>Wait a minute, what does the last option means? I&#8217;ve already set the verbose logging by /L*v, but I don&#8217;t see more entries there. Here is the algorithm WiX CA use to know whether to write a log entry marked as LOGMSG_VERBOSE level:</div><div><ul><li>Check if the LOGVERBOSE property is set (can be set in the command-line since it is public)</li><li>Otherwise, check if the MsiLogging property is set (MSI 4.0+)</li><li>Otherwise, check the <a href="http://msdn.microsoft.com/en-us/library/aa369776(VS.85).aspx">logging policy in the registry</a></li></ul><div><br /></div><div>So, the following is the easiest way in my opinion to make your MSI (WiX-based) log file even more verbose:</div><div><br /></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">   msiexec /i package.msi &#8230; LOGVERBOSE=1 /L*v install.log</span></span></div><div><br /></div><div>Hope this helps.<br /></div><div><br /></div><div>P.S. This is just a brief extract of what&#8217;s there in the source code. As usual, code is the best documentation ;-)</div></div></div></div>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/3/">&larr; Older</a>
@@ -453,6 +453,10 @@ The best and maybe the only way to find out what&#8217;s going wrong with the in
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2014/08/01/setting-up-an-existing-blog-on-octopress/">Setting up an existing blog on Octopress</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/07/31/migrate-attachments-from-ontime-to-tfs/">Migrate attachments from OnTime to TFS</a>
       </li>
     
@@ -466,10 +470,6 @@ The best and maybe the only way to find out what&#8217;s going wrong with the in
     
       <li class="post">
         <a href="/blog/2012/10/29/a-solution-can-build-fine-from-inside/">A solution can build fine from inside the Visual Studio, but fail to build with msbuild.exe</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2012/08/15/default-attribute-values-for-custom/">Default attribute values for custom NAnt tasks</a>
       </li>
     
   </ul>

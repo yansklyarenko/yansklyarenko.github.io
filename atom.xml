@@ -4,7 +4,7 @@
   <title><![CDATA[.NET, Sitecore and setup development]]></title>
   <link href="http://yansklyarenko.github.io/atom.xml" rel="self"/>
   <link href="http://yansklyarenko.github.io/"/>
-  <updated>2014-07-31T23:33:17+03:00</updated>
+  <updated>2014-08-01T00:29:06+03:00</updated>
   <id>http://yansklyarenko.github.io/</id>
   <author>
     <name><![CDATA[Yan Sklyarenko]]></name>
@@ -12,6 +12,69 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Setting up an existing blog on Octopress]]></title>
+    <link href="http://yansklyarenko.github.io/blog/2014/08/01/setting-up-an-existing-blog-on-octopress/"/>
+    <updated>2014-08-01T00:18:00+03:00</updated>
+    <id>http://yansklyarenko.github.io/blog/2014/08/01/setting-up-an-existing-blog-on-octopress</id>
+    <content type="html"><![CDATA[<p>Ok, it took me some time and efforts to set up the environment for blogging. Consider this post as a quick instruction to myself for the next time I&rsquo;ll have to do this.</p>
+
+<p>So, there&rsquo;s an existing blog created with <a href="http://octopress.org/">Octopress</a>, hosted on <a href="https://github.com/">Github</a>. The task is to setup a brand new machine to enable smooth blogging experience.</p>
+
+<blockquote><p>Note: just in case you have to create a blog from scratch, follow the official <a href="http://octopress.org/docs/setup/">Octopress docs</a>, it&rsquo;s quite clear.</p></blockquote>
+
+<p>First of all, you should install Ruby. Octopress docs recommend using either rbenv or RVM for this. Both words sound scary, hence don&rsquo;t hesitate to take the easy path and download an installer from <a href="http://dl.bintray.com/oneclick/rubyinstaller/rubyinstaller-1.9.3-p545.exe?direct">here</a>. At the last page of the installation wizard, choose to add Ruby binaries to the <code>PATH</code>:</p>
+
+<p><img src="http://yansklyarenko.github.io/images/july2014/install_ruby.png"></p>
+
+<p>When installer completes, check the installed version:</p>
+
+<pre><code>ruby --version
+</code></pre>
+
+<p>Then, clone the repo with the blog from Github. Instead of calling <code>rake setup_github_pages</code> as suggested by the Octopress docs, follow these steps found <a href="http://tech.paulcz.net/2012/12/creating-a-github-pages-blog-with-octopress.html">here</a>. Let&rsquo;s assume we&rsquo;ve done that into <code>blog</code> folder:</p>
+
+<pre><code>git clone git@github.com:username/username.github.com.git blog
+cd blog
+git checkout source
+mkdir _deploy
+cd _deploy
+git init
+git remote add origin git@github.com:username/username.github.com.git
+git pull origin master
+cd ..
+</code></pre>
+
+<p>Now do the following:</p>
+
+<pre><code>gem install bundler
+bundle install
+</code></pre>
+
+<p>This should pull all the dependencies required for the Octopress engine. Here&rsquo;s where I faced with the first inconsistency in the docs &ndash; one of the dependencies (fast-stemmer) fails to install without <a href="https://github.com/downloads/oneclick/rubyinstaller/DevKit-tdm-32-4.5.2-20111229-1559-sfx.exe">the DevKit</a>. Download it and run the installer. The installation process is documented <a href="https://github.com/oneclick/rubyinstaller/wiki/Development-Kit">here</a>, but the quickest way is:</p>
+
+<ul>
+<li>self-extract the archive</li>
+<li><code>cd</code> to that folder</li>
+<li>run <code>ruby dk.rb init</code></li>
+<li>then run <code>ruby dk.rb install</code></li>
+</ul>
+
+
+<p>After this, re-run the <code>bundle install</code> command.</p>
+
+<p>Well, at this point you should be able to create new posts with <code>rake new_post[title]</code> command. Generate the resulting HTML with <code>rake generate</code> and preview it with <code>rake preview</code> to make sure it produces what you expect.</p>
+
+<p><strong><em>An important note about syntax highlighting</em></strong></p>
+
+<p>Octopress uses <a href="http://pygments.org/">Pygments</a> to highlight the code. This is a <a href="https://www.python.org/">Python</a> thing, and obviously you should install Python for this to work. Choose <a href="https://www.python.org/ftp/python/2.7.8/python-2.7.8.msi">2.x version of Python</a> &ndash; the 3.x version doesn&rsquo;t work. This is important: you won&rsquo;t be able to generate HTML from MARKDOWN otherwise.</p>
+
+<p>That&rsquo;s it! Hope this will save me some time in future.</p>
+
+<blockquote><p>And by the way, this all is written with <a href="https://stackedit.io/">StackEdit</a> &ndash; a highly recommended online markdown editor.</p></blockquote>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Migrate attachments from OnTime to TFS]]></title>
@@ -273,16 +336,6 @@
     <id>http://yansklyarenko.github.io/blog/2009/03/22/validating-source-of-treelist</id>
     <content type="html"><![CDATA[<div class='post'>
 Sitecore 6 validation was designed to validate the field values. Recently, I also found it useful to control the source of the complex field types, like TreeList. In this post, I&#8217;ll explain this option taking the TreeList field type as an example.<div><br /></div><div>I&#8217;m skipping the validation basics here, since this topic is covered by <a href="http://alexeyrusakov.com/sitecoreblog/">Alexey Rusakov</a> in his <a href="http://alexeyrusakov.com/sitecoreblog/2008/07/02/Sitecore+6+Validation+Part+1.aspx">validation series</a>.</div><div><br /></div><div>You can define a number of parameters in the source of TreeList field type. The complete list is described in the paragraph 2.4.2 &#8220;How to Control the List of Items in a Selection Field&#8221; of the <a href="http://sdn5.sitecore.net/upload/sitecore6/datadefinitioncookbook-a4.pdf">Data Definition cookbook</a>. These parameters can filter the available and visible items in the content tree (IncludeTemplatesForSelection, ExcludeItemsForDisplay, etc.), define the tree root (DataSource), control multiple selection (AllowMultipleSelection), etc.</div><div><br /></div><div>But modifying this long list of parameters in a one-line edit field can lead to a simple typos, both in the parameters&#8217; names and values. Let&#8217;s examine how this can be &#8220;solved&#8221; by introducing a source validator.</div><div><br /></div><div>The BaseValidator class, the very root of the validator hierarchy in Sitecore API, has a protected method GetField(), which returns an instance of a Field - the one we validate. Hence, the Source property is also available. We want to validate only complex source here, thus skipping if it is an ID or an item path:</div><div><br /></div><div><div>        protected override ValidatorResult Evaluate()</div><div>        {</div><div>            ValidatorResult result = ValidatorResult.Valid;</div><div><br /></div><div>            Field field = GetField();</div><div>            if (field != null)</div><div>            {</div><div>                string fieldSource = field.Source;</div><div>                if (!string.IsNullOrEmpty(fieldSource) &amp;&amp; !ID.IsID(fieldSource) </div><div>                    &amp;&amp; !fieldSource.StartsWith(&#8220;/&#8221;, StringComparison.InvariantCulture))</div><div>                {</div><div>                    result = EvaluateSourceParameters(fieldSource);</div><div>                }</div><div>            }</div><div><br /></div><div>            return result;</div><div>        }</div><div><br /></div></div><div>Ok, let&#8217;s start the validation from just the verification if the source is &#8220;well-formed&#8221;. It might happen that a certain parameter was left without a value, or a typo was introduced to the well-known name. Sitecore will never throw an error in such a case, but instead you may receive an orphaned field with nothing to choose from. Thus, the simplest validation includes these two checks, otherwise it keeps the name/value pairs for further analysis:</div><div><br /></div><div><div>        ValidatorResult EvaluateSourceParameters(string fieldSource)</div><div>        {</div><div>            SafeDictionary<string> parameters = new SafeDictionary<string>();</string></string></div><div>            string[] sourceParts = fieldSource.Split(&#8216;&amp;&#8217;);</div><div>            foreach (string part in sourceParts)</div><div>            {</div><div>                if (string.IsNullOrEmpty(part))</div><div>                {</div><div>                    continue;</div><div>                }</div><div>                if (!part.Contains(&#8220;=&#8221;) || part.EndsWith(&#8220;=&#8221;))</div><div>                {</div><div>                    Text = string.Format(&#8220;The value is not set for source parameter &#8216;{0}&#8217;&#8221;, part.TrimEnd(&#8216;=&#8217;));</div><div>                    return GetFailedResult(ValidatorResult.Error);</div><div>                }</div><div>                else</div><div>                {</div><div>                    string parameterName = part.Substring(0, part.IndexOf(&#8216;=&#8217;)).ToLower();</div><div>                    if (!sourceParameters.Contains(parameterName))</div><div>                    {</div><div>                        Text = string.Format(&#8220;Unknown source parameter &#8216;{0}&#8217;&#8221;, parameterName);</div><div>                        return GetFailedResult(ValidatorResult.Error);</div><div>                    }</div><div>                    else</div><div>                    {</div><div>                        string parameterValue = part.Substring(part.IndexOf(&#8216;=&#8217;) + 1);</div><div>                        parameters.Add(parameterName, parameterValue);</div><div>                    }</div><div>                }</div><div>            }</div><div>            return EvaluateWellFormedParameters(parameters);</div><div>        }</div><div><br /></div><div>The further validation can go deeper and verify the presence of the specified template or item. The method EvaluateWellFormedParameters in this example just iterates the name/value pairs of parameters and applies a certain validation strategy, for instance:</div><div><br /></div><div><div>        ValidatorResult EvaluateTemplates(string value, Database database)</div><div>        {</div><div>            string[] templates = value.Split(new char[] { &#8216;,&#8217; });</div><div>            foreach (string template in templates)</div><div>            {</div><div>                if (!string.IsNullOrEmpty(template) &amp;&amp; Query.SelectSingleItem(string.Format(&#8220;/sitecore/templates//*[@@key=&#8217;{0}&#8217;]&#8221;, template.ToLower()), database) == null)</div><div>                {</div><div>                    Text = string.Format(&#8220;The template &#8216;{0}&#8217; doesn&#8217;t exist in the &#8216;{1}&#8217; database&#8221;, template, database.Name);</div><div>                    return ValidatorResult.Warning;</div><div>                }</div><div>            }</div><div>            return ValidatorResult.Valid;</div><div>        }</div><div><br /></div><div>I&#8217;m attaching the <a href="http://sites.google.com/site/yshost/Home/files/TreeListSourceValidator.cs">full code of this example</a>. </div><div><br /></div><div>There are several notes to consider:</div><div><ul><li>The DatabaseName parameter is not validated, because Sitecore takes over this. Try specifying DatabaseName=nosuchdb, and press Save</li><li>The parameter names are case-insensitive. This is because the parameters are extracted with the StringUtil.ExtractParameter() method, which ignores the case</li><li>The TreeList field type doesn&#8217;t &#8220;tolower&#8221; the values of IncludeItemsForDisplay and ExcludeItemsForDisplay parameters. Hence, be sure to specify an item key instead of an item name here</li><li>The content tree filter is built out of the &#8220;ForDisplay&#8221; parameters using &#8216;and&#8217; operation. Thus, if IncludeItemsForDisplay contain items of other templates than those specified in IncludeTemplatesForDisplay, this results in an empty tree. This can also be a point of extension of this validator&#8217;s functionality</li></ul><div>Hope anyone finds this article useful. As usual, I would appreciate any comments.</div></div></div></div><div><br /></div></div>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Extended logging options in WiX custom actions]]></title>
-    <link href="http://yansklyarenko.github.io/blog/2009/02/02/extended-logging-options-in-wix-custom/"/>
-    <updated>2009-02-02T22:46:00+02:00</updated>
-    <id>http://yansklyarenko.github.io/blog/2009/02/02/extended-logging-options-in-wix-custom</id>
-    <content type="html"><![CDATA[<div class='post'>
-The best and maybe the only way to find out what&#8217;s going wrong with the installation is investigating the MSI log file. Fortunately, the Windows Installer respects log writing very much. You can find the ways to enable logging and different logging options <a href="http://msdn.microsoft.com/en-us/library/aa370536(VS.85).aspx">here</a>.<div><br /></div><div>The verbose log contains all the information MSI can generate. Though it is really useful when it comes to troubleshooting the failed installation, it is quite hard to read, especially for newbies. Again, fortunately, there&#8217;s a super chapter &#8220;Using the Windows Installer log&#8221; in a super book called <a href="http://www.amazon.com/Definitive-Guide-Windows-Installer-Experts/dp/1590592972">&#8220;The Definitive Guide to Windows Installer&#8221; by Phil Wilson</a>, which guides you through the basics of log file reading and understanding.</div><div><br /></div><div>I used to generate the log file with /L*v options, which means verbose. But, if you use WiX custom actions, it turns out that you can make them logging even more verbose.</div><div><br /></div><div>If you browse the WiX source code, you can find the lines like this in its custom actions:</div><div><br /></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">WcaLog(LOGMSG_STANDARD, &#8220;Error: Cannot locate User.User=&#8217;%S&#8217;&#8221;, wzUser);</span></span><br /></div><div><br /></div><div>The first argument is a logging level. It can be </div><div><ul><li>LOGMSG_STANDARD, which is &#8220;write to log whenever informational logging is enabled&#8221;, which in most cases means &#8220;always&#8221;</li><li>LOGMSG_TRACEONLY, which is &#8220;write to log if this WiX build is a DEBUG build&#8221; (is often used internally to dump CustomActionData contents)<br /></li><li>LOGMSG_VERBOSE, which is &#8220;write to log when LOGVERBOSE&#8221;</li></ul><div>Wait a minute, what does the last option means? I&#8217;ve already set the verbose logging by /L*v, but I don&#8217;t see more entries there. Here is the algorithm WiX CA use to know whether to write a log entry marked as LOGMSG_VERBOSE level:</div><div><ul><li>Check if the LOGVERBOSE property is set (can be set in the command-line since it is public)</li><li>Otherwise, check if the MsiLogging property is set (MSI 4.0+)</li><li>Otherwise, check the <a href="http://msdn.microsoft.com/en-us/library/aa369776(VS.85).aspx">logging policy in the registry</a></li></ul><div><br /></div><div>So, the following is the easiest way in my opinion to make your MSI (WiX-based) log file even more verbose:</div><div><br /></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">   msiexec /i package.msi &#8230; LOGVERBOSE=1 /L*v install.log</span></span></div><div><br /></div><div>Hope this helps.<br /></div><div><br /></div><div>P.S. This is just a brief extract of what&#8217;s there in the source code. As usual, code is the best documentation ;-)</div></div></div></div>
 ]]></content>
   </entry>
   
