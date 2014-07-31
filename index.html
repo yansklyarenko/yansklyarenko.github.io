@@ -9,7 +9,7 @@
   <meta name="author" content="Yan Sklyarenko">
 
   
-  <meta name="description" content="If you need to copy a folder together with all its contents to another folder in NAnt, you would typically write something like this:&lt;copy todir &hellip;">
+  <meta name="description" content="When you move from one bug tracking system to another, the accuracy of the process is very important. A single missing point can make a work item &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,116 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/07/31/migrate-attachments-from-ontime-to-tfs/">Migrate Attachments From OnTime to TFS</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-07-31T23:32:00+03:00" pubdate data-updated="true">Jul 31<span>st</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>When you move from one bug tracking system to another, the accuracy of the process is very important. A single missing point can make a work item useless. An attached image is often worth a thousand words. Hence, today&rsquo;s post is about migrating attachments from <a href="http://www.axosoft.com/">OnTime</a> to <a href="http://en.wikipedia.org/wiki/Team_Foundation_Server">TFS</a>.</p>
+
+<blockquote><p>NOTE: The samples in this post rely on OnTime SDK, which was replaced by a <a href="http://developer.axosoft.com/api">brand new REST API</a>.</p></blockquote>
+
+<p>OnTime SDK is a set of web services, and each &ldquo;area&rdquo; is usually covered by one or a number of web services. The operations with attachments are grouped in <code>/sdk/AttachmentService.asmx</code> web service.</p>
+
+<p>So, the first thing to do is to grab all attachments of the OnTime defect:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c#'><span class='line'><span class="kt">var</span> <span class="n">rawAttachments</span> <span class="p">=</span> <span class="n">_attachmentService</span><span class="p">.</span><span class="n">GetAttachmentsList</span><span class="p">(</span><span class="n">securityToken</span><span class="p">,</span> <span class="n">AttachmentSourceTypes</span><span class="p">.</span><span class="n">Defect</span><span class="p">,</span> <span class="n">defect</span><span class="p">.</span><span class="n">DefectId</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This method returns a <code>DataSet</code>, and you&rsquo;ll have to enumerate its rows to grab the useful data:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='c#'><span class='line'><span class="kt">var</span> <span class="n">attachments</span> <span class="p">=</span> <span class="n">rawAttachments</span><span class="p">.</span><span class="n">Tables</span><span class="p">[</span><span class="m">0</span><span class="p">].</span><span class="n">AsEnumerable</span><span class="p">();</span>
+</span><span class='line'><span class="k">foreach</span> <span class="p">(</span><span class="kt">var</span> <span class="n">attachment</span> <span class="k">in</span> <span class="n">attachments</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="c1">// wi is a TFS work item object</span>
+</span><span class='line'>  <span class="n">wi</span><span class="p">.</span><span class="n">Attachments</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">GetAttachment</span><span class="p">(</span><span class="n">attachment</span><span class="p">));</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now, let&rsquo;s take a look at the <code>GetAttachment</code> method, which actually does the job. It accepts the <code>DataRow</code>, and returns the TFS <code>Attachment</code> object:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='c#'><span class='line'><span class="k">private</span> <span class="n">Attachment</span> <span class="nf">GetAttachment</span><span class="p">(</span><span class="n">DataRow</span> <span class="n">attachmentRow</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="kt">var</span> <span class="n">onTimeAttachment</span> <span class="p">=</span> <span class="n">_attachmentService</span><span class="p">.</span><span class="n">GetByAttachmentId</span><span class="p">(</span><span class="n">securityToken</span><span class="p">,</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">attachmentRow</span><span class="p">[</span><span class="s">&quot;AttachmentId&quot;</span><span class="p">]);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kt">var</span> <span class="n">tempFile</span> <span class="p">=</span> <span class="n">Path</span><span class="p">.</span><span class="n">Combine</span><span class="p">(</span><span class="n">Path</span><span class="p">.</span><span class="n">GetTempPath</span><span class="p">(),</span> <span class="n">onTimeAttachment</span><span class="p">.</span><span class="n">FileName</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="n">File</span><span class="p">.</span><span class="n">Exists</span><span class="p">(</span><span class="n">tempFile</span><span class="p">))</span>
+</span><span class='line'>    <span class="n">File</span><span class="p">.</span><span class="n">Delete</span><span class="p">(</span><span class="n">tempFile</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">File</span><span class="p">.</span><span class="n">WriteAllBytes</span><span class="p">(</span><span class="n">tempFile</span><span class="p">,</span> <span class="n">onTimeAttachment</span><span class="p">.</span><span class="n">FileData</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">return</span> <span class="k">new</span> <span class="nf">Attachment</span><span class="p">(</span><span class="n">tempFile</span><span class="p">,</span> <span class="n">onTimeAttachment</span><span class="p">.</span><span class="n">Description</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Couple of things to notice here:</p>
+
+<ul>
+<li>you have to call another web method to pull binary data of the attachment</li>
+<li>OnTime attachment metadata is rather useful and can be moved as is to TFS, for instance, attachment description</li>
+</ul>
+
+
+<p>Finally, when a new attachment is added to the TFS work item, &ldquo;increment&rdquo; the <code>ChangedDate</code> of the work item before saving it. The TFS server often refuses saving work item data in case the previous revision has exactly the same date/time stamp. Like this (always works):</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='c#'><span class='line'><span class="n">wi</span><span class="p">[</span><span class="n">CoreField</span><span class="p">.</span><span class="n">ChangedDate</span><span class="p">]</span> <span class="p">=</span> <span class="n">wi</span><span class="p">.</span><span class="n">ChangedDate</span><span class="p">.</span><span class="n">AddSeconds</span><span class="p">(</span><span class="m">5</span><span class="p">);</span>
+</span><span class='line'><span class="n">wi</span><span class="p">.</span><span class="n">Save</span><span class="p">();</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Hope it&rsquo;s useful. Good luck!</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -206,7 +316,7 @@
 
 
   <div class="entry-content"><div class='post'>
-<div dir="ltr" style="text-align: left;" trbidi="on">When you create custom <a href="http://nant.sourceforge.net/">NAnt</a> tasks, you can specify various task parameter characteristics, such as whether it is a required attribute, how it validates its value, etc. This is done via the custom attributes in .NET, for example: <br /><div class="wlWriterEditableSmartContent" id="scid:f32c3428-b7e9-4f15-a8ea-c502c7ff2e88:035f0705-3d6e-49d1-b4f6-f204a32b007f" style="display: inline; float: none; margin: 0px; padding-bottom: 0px; padding-left: 0px; padding-right: 0px; padding-top: 0px;"><code class="c#">[TaskAttribute("param", Required = true), StringValidator(AllowEmpty = false)]<br />public string Param { get; set; }</code></div>It might be a good idea to be able to specify a default value for a task parameter the similar way, for instance:<br /><div class="wlWriterEditableSmartContent" id="scid:f32c3428-b7e9-4f15-a8ea-c502c7ff2e88:ab15929c-f17e-4af8-a9f7-002707f23da4" style="display: inline; float: none; margin: 0px; padding-bottom: 0px; padding-left: 0px; padding-right: 0px; padding-top: 0px;"><pre class="brush: c#;">[TaskAttribute("port"), Int32Validator(1000, 65520), DefaultValue(16333)]<br />public int Port { get; set; }</pre></div>Let’s examine the way it can be implemented. First of all, let’s define the custom attribute for the default value:<br /><div class="wlWriterEditableSmartContent" id="scid:f32c3428-b7e9-4f15-a8ea-c502c7ff2e88:9610860a-ef97-4b43-b9fb-53404ae7af97" style="display: inline; float: none; margin: 0px; padding-bottom: 0px; padding-left: 0px; padding-right: 0px; padding-top: 0px;"><pre class="brush: c#;">/// &lt;summary&gt;<br />/// The custom attribute for the task attribute default value<br />/// &lt;/summary&gt;<br />public class DefaultValueAttribute : Attribute<br />{<br />  public DefaultValueAttribute(object value)<br />  {<br />    this.Default = value;<br />  }<br /><br />  public object Default { get; set; }<br />}</pre></div>I suppose the <a href="http://msdn.microsoft.com/en-us/library/system.componentmodel.defaultvalueattribute.aspx">standard .NET DefaultValueAttribute</a> can be used for this purpose as well, but the one above is very simple and is good for this sample. Note also that in this situation we could benefit from the generic custom attributes, <a href="http://stackoverflow.com/questions/294216/why-does-c-sharp-forbid-generic-attribute-types">which unfortunately are not supported in C#, although are quite valid for CLR</a>.<br /><br />Now, when the attribute is defined, let’s design the way default values will be applied at runtime. For this purpose we’ll have to define a special base class for all our custom tasks we’d like to use default values technique:<br /><div class="wlWriterEditableSmartContent" id="scid:f32c3428-b7e9-4f15-a8ea-c502c7ff2e88:d0e399ab-d366-4d25-babe-725de7760c30" style="display: inline; float: none; margin: 0px; padding-bottom: 0px; padding-left: 0px; padding-right: 0px; padding-top: 0px;"><pre class="brush: c#;">public abstract class DefaultValueAwareTask : Task<br />{<br />  protected override void ExecuteTask()<br />  {<br />    this.SetDefaultValues();<br />  }<br /><br />  protected virtual void SetDefaultValues()<br />  {<br />    foreach (var property in GetPropertiesWithCustomAttributes&lt;DefaultValueAttribute&gt;(this.GetType()))<br />    {<br />      var attribute = (TaskAttributeAttribute)property.GetCustomAttributes(typeof(TaskAttributeAttribute), false)[0];<br />      var attributeDefaultValue = (DefaultValueAttribute)property.GetCustomAttributes(typeof(DefaultValueAttribute), false)[0];<br /><br />      if (attribute.Required)<br />      {<br />        throw new BuildException("No reason to allow both to be set", this.Location);<br />      }<br /><br />      if (this.XmlNode.Attributes[attribute.Name] == null)<br />      {<br />        property.SetValue(this, attributeDefaultValue.Default, null);<br />      }<br />    }<br />  }<br /><br />  private static IEnumerable&lt;PropertyInfo&gt; GetPropertiesWithCustomAttributes&lt;T&gt;(Type type)<br />  {<br />    return type.GetProperties(BindingFlags.DeclaredOnly | BindingFlags.Public | BindingFlags.Instance).Where(property =&gt; property.GetCustomAttributes(typeof(T), false).Length &gt; 0);<br />  }<br />}</pre></div>Let’s examine what this code actually does. The key method here is SetDefaultValues(). It iterates through the task parameters (the public properties marked with DefaultValueAttribute attribute) of the class it is defined in and checks whether the value carried by the DefaultValueAttribute should be set as a true value of the task parameter. It is quite simple: if the XmlNode of the NAnt task definition doesn’t contain the parameter in question, it means a developer didn’t set it explicitly, and it is necessary to set a default value. Moreover, if the task parameter is marked as Required and has a default value at the same time, this situation is treated as not appropriate and the exception is thrown.<br /><br />Obviously, when a custom NAnt task derives from the DefaultValueAwareTask, it has to call base.ExecuteTask() at the very start of its ExecuteTask() method implementation for this technique to work.</div></div>
+<div dir="ltr" style="text-align: left;" trbidi="on">When you create custom <a href="http://nant.sourceforge.net/">NAnt</a> tasks, you can specify various task parameter characteristics, such as whether it is a required attribute, how it validates its value, etc. This is done via the custom attributes in .NET, for example: <br /><div class="wlWriterEditableSmartContent" id="scid:f32c3428-b7e9-4f15-a8ea-c502c7ff2e88:035f0705-3d6e-49d1-b4f6-f204a32b007f" style="display: inline; float: none; margin: 0px; padding-bottom: 0px; padding-left: 0px; padding-right: 0px; padding-top: 0px;"><pre class="brush: c#;">[TaskAttribute("param", Required = true), StringValidator(AllowEmpty = false)]<br />public string Param { get; set; }</pre></div>It might be a good idea to be able to specify a default value for a task parameter the similar way, for instance:<br /><div class="wlWriterEditableSmartContent" id="scid:f32c3428-b7e9-4f15-a8ea-c502c7ff2e88:ab15929c-f17e-4af8-a9f7-002707f23da4" style="display: inline; float: none; margin: 0px; padding-bottom: 0px; padding-left: 0px; padding-right: 0px; padding-top: 0px;"><pre class="brush: c#;">[TaskAttribute("port"), Int32Validator(1000, 65520), DefaultValue(16333)]<br />public int Port { get; set; }</pre></div>Let’s examine the way it can be implemented. First of all, let’s define the custom attribute for the default value:<br /><div class="wlWriterEditableSmartContent" id="scid:f32c3428-b7e9-4f15-a8ea-c502c7ff2e88:9610860a-ef97-4b43-b9fb-53404ae7af97" style="display: inline; float: none; margin: 0px; padding-bottom: 0px; padding-left: 0px; padding-right: 0px; padding-top: 0px;"><pre class="brush: c#;">/// &lt;summary&gt;<br />/// The custom attribute for the task attribute default value<br />/// &lt;/summary&gt;<br />public class DefaultValueAttribute : Attribute<br />{<br />  public DefaultValueAttribute(object value)<br />  {<br />    this.Default = value;<br />  }<br /><br />  public object Default { get; set; }<br />}</pre></div>I suppose the <a href="http://msdn.microsoft.com/en-us/library/system.componentmodel.defaultvalueattribute.aspx">standard .NET DefaultValueAttribute</a> can be used for this purpose as well, but the one above is very simple and is good for this sample. Note also that in this situation we could benefit from the generic custom attributes, <a href="http://stackoverflow.com/questions/294216/why-does-c-sharp-forbid-generic-attribute-types">which unfortunately are not supported in C#, although are quite valid for CLR</a>.<br /><br />Now, when the attribute is defined, let’s design the way default values will be applied at runtime. For this purpose we’ll have to define a special base class for all our custom tasks we’d like to use default values technique:<br /><div class="wlWriterEditableSmartContent" id="scid:f32c3428-b7e9-4f15-a8ea-c502c7ff2e88:d0e399ab-d366-4d25-babe-725de7760c30" style="display: inline; float: none; margin: 0px; padding-bottom: 0px; padding-left: 0px; padding-right: 0px; padding-top: 0px;"><pre class="brush: c#;">public abstract class DefaultValueAwareTask : Task<br />{<br />  protected override void ExecuteTask()<br />  {<br />    this.SetDefaultValues();<br />  }<br /><br />  protected virtual void SetDefaultValues()<br />  {<br />    foreach (var property in GetPropertiesWithCustomAttributes&lt;DefaultValueAttribute&gt;(this.GetType()))<br />    {<br />      var attribute = (TaskAttributeAttribute)property.GetCustomAttributes(typeof(TaskAttributeAttribute), false)[0];<br />      var attributeDefaultValue = (DefaultValueAttribute)property.GetCustomAttributes(typeof(DefaultValueAttribute), false)[0];<br /><br />      if (attribute.Required)<br />      {<br />        throw new BuildException("No reason to allow both to be set", this.Location);<br />      }<br /><br />      if (this.XmlNode.Attributes[attribute.Name] == null)<br />      {<br />        property.SetValue(this, attributeDefaultValue.Default, null);<br />      }<br />    }<br />  }<br /><br />  private static IEnumerable&lt;PropertyInfo&gt; GetPropertiesWithCustomAttributes&lt;T&gt;(Type type)<br />  {<br />    return type.GetProperties(BindingFlags.DeclaredOnly | BindingFlags.Public | BindingFlags.Instance).Where(property =&gt; property.GetCustomAttributes(typeof(T), false).Length &gt; 0);<br />  }<br />}</pre></div>Let’s examine what this code actually does. The key method here is SetDefaultValues(). It iterates through the task parameters (the public properties marked with DefaultValueAttribute attribute) of the class it is defined in and checks whether the value carried by the DefaultValueAttribute should be set as a true value of the task parameter. It is quite simple: if the XmlNode of the NAnt task definition doesn’t contain the parameter in question, it means a developer didn’t set it explicitly, and it is necessary to set a default value. Moreover, if the task parameter is marked as Required and has a default value at the same time, this situation is treated as not appropriate and the exception is thrown.<br /><br />Obviously, when a custom NAnt task derives from the DefaultValueAwareTask, it has to call base.ExecuteTask() at the very start of its ExecuteTask() method implementation for this technique to work.</div></div>
 </div>
   
   
@@ -399,43 +509,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/01/27/moving-to-dotnetinstaller-simplest-case/">Moving to dotNetInstaller: The Simplest Case</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2011-01-27T17:22:00+02:00" pubdate data-updated="true">Jan 27<span>th</span>, 2011</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><div class='post'>
-<p>I’ve been playing with one of the most popular <a href="http://wix.mindcapers.com/wiki/Bootstrapper">bootstrapper</a> applications available as free and open source tool – <a href="http://http://dotnetinstaller.codeplex.com/">dotNetInstaller</a>. On one hand, it turns out to be quite a powerful and feature-rich tool. But on the other, some things seem not intuitive to me, and there are still limitations. This post opens the series of (at least, two) posts about dotNetInstaller and my own experience with it.</p>  <p>Ok, imagine you need to do a very simple thing: wrap your installation program resources into a single EXE file, let it extract necessary files to somewhere under %TEMP%, run the installation UI wizard and finally drop extracted files when the installation is done. </p>  <p>You should start by installing dotNetInstaller (I used the <a href="http://dotnetinstaller.codeplex.com/releases/view/50143">most recent 2.0 version</a>). One of the executables being installed is InstallerEditor.exe. It is a kind of IDE (smart editor) for dotNetInstaller project files, which are called configurations. The information about your project is stored as XML, that is easily DIFF-able and MERGE-able. </p>  <p>So, run InstallerEditor, and select File &gt; New – the new empty config file will be created. The first thing I suggest to do is to enable logging – it is a property of config file you’ve just created. Next, right click the root (and so far the only) node in the left pane, and select Add &gt; Configurations &gt; Setup Configuration. Actually, this is the only type of entities you can add under config file node. Besides, at this level you can set the UI level for your bootstrapper. According to our task definition, ‘basic’ is just enough. By now, you should end up with something like this:</p>  <p><a href="http://lh4.ggpht.com/_dqWPbhO6dtA/TUGNtemJjtI/AAAAAAAAAZQ/KQ9dQ6j8ZI4/s1600-h/DNI_initial_config%5B13%5D.png"><img style="background-image: none; border-right-width: 0px; padding-left: 0px; padding-right: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px; padding-top: 0px" title="DNI_initial_config" border="0" alt="DNI_initial_config" src="http://lh4.ggpht.com/_dqWPbhO6dtA/TUGNuNVi_-I/AAAAAAAAAZU/4O4jTeYdzKM/DNI_initial_config_thumb%5B7%5D.png?imgmax=800" width="929" height="600" /></a></p>  <p>Setup configuration serves as a root for various entities: embedded files, installation components, UI controls, etc. However, our requirements for the simplest scenario doesn’t require most of it. Usually configuration consists of a number of components, but again, we won’t add them for now.</p>  <p>In order to include installation files into our bootstrapper, right-click “install:” node and select Add &gt; Embed &gt; Embed Folder. Now fill the properties for this embedded folder. Fortunately, those are just two – <em>sourcefolderpath</em> and <em>targetfolderpath</em>. Place the value ‘#APPPATH’ to the first one and any value to the second. ‘#APPPATH’ is one of the several variable substitutions offered by dotNetInstaller out-of-the-box and basically means that installation files will be picked either from the current folder, or from the one you specify in the /a switch of the linker. The ‘targetfolderpath’ can logically be left empty, because it sets the name of the subfolder under system temp location to extracts the files to. But it is designed to be required, so feel free to paste anything here, for instance, ‘exe’. Ok, so now we are at this point:</p>  <p><a href="http://lh4.ggpht.com/_dqWPbhO6dtA/TUGNuqEQ56I/AAAAAAAAAZY/RTdrH6MrNJU/s1600-h/DNI_embed_folder%5B11%5D.png"><img style="background-image: none; border-right-width: 0px; padding-left: 0px; padding-right: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px; padding-top: 0px" title="DNI_embed_folder" border="0" alt="DNI_embed_folder" src="http://lh4.ggpht.com/_dqWPbhO6dtA/TUGNvK9SmNI/AAAAAAAAAZc/S5Oq1rRhRnM/DNI_embed_folder_thumb%5B5%5D.png?imgmax=800" width="929" height="600" /></a></p>  <p>The installation wizard to run is also among those files we embedded, of course. So, in order to run it after the extraction is done we should fill in the ‘complete_command’ property of the configuration. For this, select “install:” node and find the set of properties prefixed with “complete_command”. As you can see, the configuration entity has lots of properties to configure and is quite flexible. The “complete_command” should store the command line to run on successful installation complete. You can specify different values for each of 3 UI modes: full, basic and silent. Actually, if basic or silent are not specified, it will fall back to just “complete_command”. </p>  <p>Besides, we’d like to show CAB extraction dialog. This is especially useful when the files are large and it takes some time to extract. Set “show_cab_dialog” to ‘true’. Optionally, customize other properties of the CAB extraction dialog, like Caption and Message. So, summarizing these two paragraphs, we now have the following configuration:</p>  <p><a href="http://lh6.ggpht.com/_dqWPbhO6dtA/TUGNvkFml6I/AAAAAAAAAZg/8WfnCxbuypQ/s1600-h/DNI_complete_command%5B3%5D.png"><img style="background-image: none; border-right-width: 0px; padding-left: 0px; padding-right: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px; padding-top: 0px" title="DNI_complete_command" border="0" alt="DNI_complete_command" src="http://lh5.ggpht.com/_dqWPbhO6dtA/TUGNwOzPvQI/AAAAAAAAAZk/xBanjpviccA/DNI_complete_command_thumb%5B1%5D.png?imgmax=800" width="929" height="604" /></a></p>  <p>Pay attention to “cab_path” property. In this form it basically means: take system %TEMP% location, and create a subfolder in it named as random GUID. This guaranties the uniqueness of the extract target location and you would not probably ever want to change it. Now, this magic location can be referenced as #CABPATH by other properties. For isntance, this is what we have done for “complete_command”. The values says: go to the folder the files were just extracted to, go down to its “exe” subfolder (remember ‘targetfolderpath’?) and run InstallWizard.exe.</p>  <p>And finally, some more details. Make sure “auto_start”, “wait_for_complete_command” and “cab_path_autodelete” are all set to ‘true’. Obviously, this will instruct our bootstrapper to start automatically, and auto delete the extracted files after the complete command completes. </p>  <h4>Linking and running</h4>  <p>Before building the project, you can run it with dotNetInstaller.exe to see the UI. Just run dotNetInstaller.exe /ConfigFile configuration.xml. But <strong><font color="#ff0000">this won’t embed any files</font></strong>. As a result, <strong><font color="#ff0000">you’ll be able to check only UI </font></strong>(which is obviously not the point for our case). <strong><font color="#ff0000">All settings which rely on embedded files will fail</font></strong>.</p>  <p>Instead, we’ll link the sources into final setup.exe. The following command does the job:</p>  <p>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <font face="Consolas">InstallerLinker.exe /o:setup.exe /t:dotNetInstaller.exe /c:install_config.xml /i:my.ico /a:source /v+</font></p>  <p>Here, /o: stands for output file name, /t: is a template of EXE file to make like – be sure to always set it to dotNetInstaller.exe, /c: is a path to the configuration file we have been editing all this time, /i: is obviously a path to the icon to use as an application icon for setup.exe, /a: is a path to the installation files to embed, and finally, /v+ turns the verbose logging on. In case there are no errors, you’ll see the following output:</p>  <p><a href="http://lh4.ggpht.com/_dqWPbhO6dtA/TUGNwsZQRGI/AAAAAAAAAZo/q1rMWEGoyxg/s1600-h/DNI_linker_output%5B3%5D.png"><img style="background-image: none; border-right-width: 0px; padding-left: 0px; padding-right: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px; padding-top: 0px" title="DNI_linker_output" border="0" alt="DNI_linker_output" src="http://lh4.ggpht.com/_dqWPbhO6dtA/TUGNxN02_zI/AAAAAAAAAZs/Cm6G3JH9ruM/DNI_linker_output_thumb%5B1%5D.png?imgmax=800" width="681" height="514" /></a></p>  <p>Now you have setup.exe, which extracts your installation files (showing the progress), and starts your main InstallWizard.exe in case of successful extraction.</p>  <p>That’s it! As usual, your comments and notes are welcome.</p>  </div>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -449,6 +522,10 @@
     <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/07/31/migrate-attachments-from-ontime-to-tfs/">Migrate attachments from OnTime to TFS</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2013/01/03/nant-task-behaves-differently-in-092/">NAnt <copy> task behaves differently in 0.92 and prior versions</a>
@@ -466,10 +543,6 @@
         <a href="/blog/2012/08/15/default-attribute-values-for-custom/">Default attribute values for custom NAnt tasks</a>
       </li>
     
-      <li class="post">
-        <a href="/blog/2012/07/06/generate-solution-file-for-number-of-c/">Generate a solution file for a number of C# projects files in a folder</a>
-      </li>
-    
   </ul>
 </section>
 
@@ -483,7 +556,7 @@
     </div>
   </div>
   <footer role="contentinfo"><p>
-  Copyright &copy; 2013 - Yan Sklyarenko -
+  Copyright &copy; 2014 - Yan Sklyarenko -
   <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
 </p>
 

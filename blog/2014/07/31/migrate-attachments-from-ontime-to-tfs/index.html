@@ -1,0 +1,295 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Migrate attachments from OnTime to TFS - .NET, Sitecore and setup development</title>
+  <meta name="author" content="Yan Sklyarenko">
+
+  
+  <meta name="description" content="When you move from one bug tracking system to another, the accuracy of the process is very important. A single missing point can make a work item &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://yansklyarenko.github.io/blog/2014/07/31/migrate-attachments-from-ontime-to-tfs">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title=".NET, Sitecore and setup development" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+  
+
+</head>
+
+<body   class="collapse-sidebar sidebar-footer" >
+  <header role="banner"><hgroup>
+  <h1><a href="/">.NET, Sitecore and setup development</a></h1>
+  
+    <h2>This blog is used as a memory dump of random thoughts and interesting facts about different things in the world of IT.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:yansklyarenko.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Migrate Attachments From OnTime to TFS</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-07-31T23:32:00+03:00" pubdate data-updated="true">Jul 31<span>st</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>When you move from one bug tracking system to another, the accuracy of the process is very important. A single missing point can make a work item useless. An attached image is often worth a thousand words. Hence, today&rsquo;s post is about migrating attachments from <a href="http://www.axosoft.com/">OnTime</a> to <a href="http://en.wikipedia.org/wiki/Team_Foundation_Server">TFS</a>.</p>
+
+<blockquote><p>NOTE: The samples in this post rely on OnTime SDK, which was replaced by a <a href="http://developer.axosoft.com/api">brand new REST API</a>.</p></blockquote>
+
+<p>OnTime SDK is a set of web services, and each &ldquo;area&rdquo; is usually covered by one or a number of web services. The operations with attachments are grouped in <code>/sdk/AttachmentService.asmx</code> web service.</p>
+
+<p>So, the first thing to do is to grab all attachments of the OnTime defect:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='c#'><span class='line'><span class="kt">var</span> <span class="n">rawAttachments</span> <span class="p">=</span> <span class="n">_attachmentService</span><span class="p">.</span><span class="n">GetAttachmentsList</span><span class="p">(</span><span class="n">securityToken</span><span class="p">,</span> <span class="n">AttachmentSourceTypes</span><span class="p">.</span><span class="n">Defect</span><span class="p">,</span> <span class="n">defect</span><span class="p">.</span><span class="n">DefectId</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This method returns a <code>DataSet</code>, and you&rsquo;ll have to enumerate its rows to grab the useful data:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='c#'><span class='line'><span class="kt">var</span> <span class="n">attachments</span> <span class="p">=</span> <span class="n">rawAttachments</span><span class="p">.</span><span class="n">Tables</span><span class="p">[</span><span class="m">0</span><span class="p">].</span><span class="n">AsEnumerable</span><span class="p">();</span>
+</span><span class='line'><span class="k">foreach</span> <span class="p">(</span><span class="kt">var</span> <span class="n">attachment</span> <span class="k">in</span> <span class="n">attachments</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="c1">// wi is a TFS work item object</span>
+</span><span class='line'>  <span class="n">wi</span><span class="p">.</span><span class="n">Attachments</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">GetAttachment</span><span class="p">(</span><span class="n">attachment</span><span class="p">));</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now, let&rsquo;s take a look at the <code>GetAttachment</code> method, which actually does the job. It accepts the <code>DataRow</code>, and returns the TFS <code>Attachment</code> object:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='c#'><span class='line'><span class="k">private</span> <span class="n">Attachment</span> <span class="nf">GetAttachment</span><span class="p">(</span><span class="n">DataRow</span> <span class="n">attachmentRow</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="kt">var</span> <span class="n">onTimeAttachment</span> <span class="p">=</span> <span class="n">_attachmentService</span><span class="p">.</span><span class="n">GetByAttachmentId</span><span class="p">(</span><span class="n">securityToken</span><span class="p">,</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">attachmentRow</span><span class="p">[</span><span class="s">&quot;AttachmentId&quot;</span><span class="p">]);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kt">var</span> <span class="n">tempFile</span> <span class="p">=</span> <span class="n">Path</span><span class="p">.</span><span class="n">Combine</span><span class="p">(</span><span class="n">Path</span><span class="p">.</span><span class="n">GetTempPath</span><span class="p">(),</span> <span class="n">onTimeAttachment</span><span class="p">.</span><span class="n">FileName</span><span class="p">);</span>
+</span><span class='line'>  <span class="k">if</span> <span class="p">(</span><span class="n">File</span><span class="p">.</span><span class="n">Exists</span><span class="p">(</span><span class="n">tempFile</span><span class="p">))</span>
+</span><span class='line'>    <span class="n">File</span><span class="p">.</span><span class="n">Delete</span><span class="p">(</span><span class="n">tempFile</span><span class="p">);</span>
+</span><span class='line'>  <span class="n">File</span><span class="p">.</span><span class="n">WriteAllBytes</span><span class="p">(</span><span class="n">tempFile</span><span class="p">,</span> <span class="n">onTimeAttachment</span><span class="p">.</span><span class="n">FileData</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">return</span> <span class="k">new</span> <span class="nf">Attachment</span><span class="p">(</span><span class="n">tempFile</span><span class="p">,</span> <span class="n">onTimeAttachment</span><span class="p">.</span><span class="n">Description</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Couple of things to notice here:</p>
+
+<ul>
+<li>you have to call another web method to pull binary data of the attachment</li>
+<li>OnTime attachment metadata is rather useful and can be moved as is to TFS, for instance, attachment description</li>
+</ul>
+
+
+<p>Finally, when a new attachment is added to the TFS work item, &ldquo;increment&rdquo; the <code>ChangedDate</code> of the work item before saving it. The TFS server often refuses saving work item data in case the previous revision has exactly the same date/time stamp. Like this (always works):</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='c#'><span class='line'><span class="n">wi</span><span class="p">[</span><span class="n">CoreField</span><span class="p">.</span><span class="n">ChangedDate</span><span class="p">]</span> <span class="p">=</span> <span class="n">wi</span><span class="p">.</span><span class="n">ChangedDate</span><span class="p">.</span><span class="n">AddSeconds</span><span class="p">(</span><span class="m">5</span><span class="p">);</span>
+</span><span class='line'><span class="n">wi</span><span class="p">.</span><span class="n">Save</span><span class="p">();</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Hope it&rsquo;s useful. Good luck!</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Yan Sklyarenko</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-07-31T23:32:00+03:00" pubdate data-updated="true">Jul 31<span>st</span>, 2014</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/attachment/'>attachment</a>, <a class='category' href='/blog/categories/migrate/'>migrate</a>, <a class='category' href='/blog/categories/ontime/'>ontime</a>, <a class='category' href='/blog/categories/tfs/'>tfs</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://yansklyarenko.github.io/blog/2014/07/31/migrate-attachments-from-ontime-to-tfs/" data-via="" data-counturl="http://yansklyarenko.github.io/blog/2014/07/31/migrate-attachments-from-ontime-to-tfs/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2013/01/03/nant-task-behaves-differently-in-092/" title="Previous Post: NAnt <copy> task behaves differently in 0.92 and prior versions">&laquo; NAnt <copy> task behaves differently in 0.92 and prior versions</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/07/31/migrate-attachments-from-ontime-to-tfs/">Migrate attachments from OnTime to TFS</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/01/03/nant-task-behaves-differently-in-092/">NAnt <copy> task behaves differently in 0.92 and prior versions</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/11/19/possible-source-of-signtool-bad-format/">Possible source of the signtool 'bad format' 0x800700C1 problem</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/10/29/a-solution-can-build-fine-from-inside/">A solution can build fine from inside the Visual Studio, but fail to build with msbuild.exe</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/08/15/default-attribute-values-for-custom/">Default attribute values for custom NAnt tasks</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - Yan Sklyarenko -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

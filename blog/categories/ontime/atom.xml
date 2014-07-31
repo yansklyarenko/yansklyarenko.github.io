@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: ontime | .NET, Sitecore and setup development]]></title>
+  <link href="http://yansklyarenko.github.io/blog/categories/ontime/atom.xml" rel="self"/>
+  <link href="http://yansklyarenko.github.io/"/>
+  <updated>2014-07-31T23:33:17+03:00</updated>
+  <id>http://yansklyarenko.github.io/</id>
+  <author>
+    <name><![CDATA[Yan Sklyarenko]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Migrate attachments from OnTime to TFS]]></title>
+    <link href="http://yansklyarenko.github.io/blog/2014/07/31/migrate-attachments-from-ontime-to-tfs/"/>
+    <updated>2014-07-31T23:32:00+03:00</updated>
+    <id>http://yansklyarenko.github.io/blog/2014/07/31/migrate-attachments-from-ontime-to-tfs</id>
+    <content type="html"><![CDATA[<p>When you move from one bug tracking system to another, the accuracy of the process is very important. A single missing point can make a work item useless. An attached image is often worth a thousand words. Hence, today&rsquo;s post is about migrating attachments from <a href="http://www.axosoft.com/">OnTime</a> to <a href="http://en.wikipedia.org/wiki/Team_Foundation_Server">TFS</a>.</p>
+
+<blockquote><p>NOTE: The samples in this post rely on OnTime SDK, which was replaced by a <a href="http://developer.axosoft.com/api">brand new REST API</a>.</p></blockquote>
+
+<p>OnTime SDK is a set of web services, and each &ldquo;area&rdquo; is usually covered by one or a number of web services. The operations with attachments are grouped in <code>/sdk/AttachmentService.asmx</code> web service.</p>
+
+<p>So, the first thing to do is to grab all attachments of the OnTime defect:</p>
+
+<p><code>c#
+var rawAttachments = _attachmentService.GetAttachmentsList(securityToken, AttachmentSourceTypes.Defect, defect.DefectId);
+</code>
+This method returns a <code>DataSet</code>, and you&rsquo;ll have to enumerate its rows to grab the useful data:</p>
+
+<p><code>c#
+var attachments = rawAttachments.Tables[0].AsEnumerable();
+foreach (var attachment in attachments)
+{
+  // wi is a TFS work item object
+  wi.Attachments.Add(GetAttachment(attachment));
+}
+</code></p>
+
+<p>Now, let&rsquo;s take a look at the <code>GetAttachment</code> method, which actually does the job. It accepts the <code>DataRow</code>, and returns the TFS <code>Attachment</code> object:</p>
+
+<p>```c#
+private Attachment GetAttachment(DataRow attachmentRow)
+{
+  var onTimeAttachment = _attachmentService.GetByAttachmentId(securityToken, (int)attachmentRow[&ldquo;AttachmentId&rdquo;]);</p>
+
+<p>  var tempFile = Path.Combine(Path.GetTempPath(), onTimeAttachment.FileName);
+  if (File.Exists(tempFile))</p>
+
+<pre><code>File.Delete(tempFile);
+</code></pre>
+
+<p>  File.WriteAllBytes(tempFile, onTimeAttachment.FileData);</p>
+
+<p>  return new Attachment(tempFile, onTimeAttachment.Description);
+}
+```
+Couple of things to notice here:</p>
+
+<ul>
+<li>you have to call another web method to pull binary data of the attachment</li>
+<li>OnTime attachment metadata is rather useful and can be moved as is to TFS, for instance, attachment description</li>
+</ul>
+
+
+<p>Finally, when a new attachment is added to the TFS work item, &ldquo;increment&rdquo; the <code>ChangedDate</code> of the work item before saving it. The TFS server often refuses saving work item data in case the previous revision has exactly the same date/time stamp. Like this (always works):</p>
+
+<p><code>c#
+wi[CoreField.ChangedDate] = wi.ChangedDate.AddSeconds(5);
+wi.Save();
+</code>
+Hope it&rsquo;s useful. Good luck!</p>
+]]></content>
+  </entry>
+  
+</feed>

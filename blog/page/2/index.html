@@ -9,7 +9,7 @@
   <meta name="author" content="Yan Sklyarenko">
 
   
-  <meta name="description" content="It is well-known that each field of a template can be versioned (default option), unversioned or shared. The Template Builder UI exposes the &hellip;">
+  <meta name="description" content="I’ve been playing with one of the most popular bootstrapper applications available as free and open source tool – dotNetInstaller. On one hand, &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,43 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/01/27/moving-to-dotnetinstaller-simplest-case/">Moving to dotNetInstaller: The Simplest Case</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2011-01-27T17:22:00+02:00" pubdate data-updated="true">Jan 27<span>th</span>, 2011</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><div class='post'>
+<p>I’ve been playing with one of the most popular <a href="http://wix.mindcapers.com/wiki/Bootstrapper">bootstrapper</a> applications available as free and open source tool – <a href="http://http://dotnetinstaller.codeplex.com/">dotNetInstaller</a>. On one hand, it turns out to be quite a powerful and feature-rich tool. But on the other, some things seem not intuitive to me, and there are still limitations. This post opens the series of (at least, two) posts about dotNetInstaller and my own experience with it.</p>  <p>Ok, imagine you need to do a very simple thing: wrap your installation program resources into a single EXE file, let it extract necessary files to somewhere under %TEMP%, run the installation UI wizard and finally drop extracted files when the installation is done. </p>  <p>You should start by installing dotNetInstaller (I used the <a href="http://dotnetinstaller.codeplex.com/releases/view/50143">most recent 2.0 version</a>). One of the executables being installed is InstallerEditor.exe. It is a kind of IDE (smart editor) for dotNetInstaller project files, which are called configurations. The information about your project is stored as XML, that is easily DIFF-able and MERGE-able. </p>  <p>So, run InstallerEditor, and select File &gt; New – the new empty config file will be created. The first thing I suggest to do is to enable logging – it is a property of config file you’ve just created. Next, right click the root (and so far the only) node in the left pane, and select Add &gt; Configurations &gt; Setup Configuration. Actually, this is the only type of entities you can add under config file node. Besides, at this level you can set the UI level for your bootstrapper. According to our task definition, ‘basic’ is just enough. By now, you should end up with something like this:</p>  <p><a href="http://lh4.ggpht.com/_dqWPbhO6dtA/TUGNtemJjtI/AAAAAAAAAZQ/KQ9dQ6j8ZI4/s1600-h/DNI_initial_config%5B13%5D.png"><img style="background-image: none; border-right-width: 0px; padding-left: 0px; padding-right: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px; padding-top: 0px" title="DNI_initial_config" border="0" alt="DNI_initial_config" src="http://lh4.ggpht.com/_dqWPbhO6dtA/TUGNuNVi_-I/AAAAAAAAAZU/4O4jTeYdzKM/DNI_initial_config_thumb%5B7%5D.png?imgmax=800" width="929" height="600" /></a></p>  <p>Setup configuration serves as a root for various entities: embedded files, installation components, UI controls, etc. However, our requirements for the simplest scenario doesn’t require most of it. Usually configuration consists of a number of components, but again, we won’t add them for now.</p>  <p>In order to include installation files into our bootstrapper, right-click “install:” node and select Add &gt; Embed &gt; Embed Folder. Now fill the properties for this embedded folder. Fortunately, those are just two – <em>sourcefolderpath</em> and <em>targetfolderpath</em>. Place the value ‘#APPPATH’ to the first one and any value to the second. ‘#APPPATH’ is one of the several variable substitutions offered by dotNetInstaller out-of-the-box and basically means that installation files will be picked either from the current folder, or from the one you specify in the /a switch of the linker. The ‘targetfolderpath’ can logically be left empty, because it sets the name of the subfolder under system temp location to extracts the files to. But it is designed to be required, so feel free to paste anything here, for instance, ‘exe’. Ok, so now we are at this point:</p>  <p><a href="http://lh4.ggpht.com/_dqWPbhO6dtA/TUGNuqEQ56I/AAAAAAAAAZY/RTdrH6MrNJU/s1600-h/DNI_embed_folder%5B11%5D.png"><img style="background-image: none; border-right-width: 0px; padding-left: 0px; padding-right: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px; padding-top: 0px" title="DNI_embed_folder" border="0" alt="DNI_embed_folder" src="http://lh4.ggpht.com/_dqWPbhO6dtA/TUGNvK9SmNI/AAAAAAAAAZc/S5Oq1rRhRnM/DNI_embed_folder_thumb%5B5%5D.png?imgmax=800" width="929" height="600" /></a></p>  <p>The installation wizard to run is also among those files we embedded, of course. So, in order to run it after the extraction is done we should fill in the ‘complete_command’ property of the configuration. For this, select “install:” node and find the set of properties prefixed with “complete_command”. As you can see, the configuration entity has lots of properties to configure and is quite flexible. The “complete_command” should store the command line to run on successful installation complete. You can specify different values for each of 3 UI modes: full, basic and silent. Actually, if basic or silent are not specified, it will fall back to just “complete_command”. </p>  <p>Besides, we’d like to show CAB extraction dialog. This is especially useful when the files are large and it takes some time to extract. Set “show_cab_dialog” to ‘true’. Optionally, customize other properties of the CAB extraction dialog, like Caption and Message. So, summarizing these two paragraphs, we now have the following configuration:</p>  <p><a href="http://lh6.ggpht.com/_dqWPbhO6dtA/TUGNvkFml6I/AAAAAAAAAZg/8WfnCxbuypQ/s1600-h/DNI_complete_command%5B3%5D.png"><img style="background-image: none; border-right-width: 0px; padding-left: 0px; padding-right: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px; padding-top: 0px" title="DNI_complete_command" border="0" alt="DNI_complete_command" src="http://lh5.ggpht.com/_dqWPbhO6dtA/TUGNwOzPvQI/AAAAAAAAAZk/xBanjpviccA/DNI_complete_command_thumb%5B1%5D.png?imgmax=800" width="929" height="604" /></a></p>  <p>Pay attention to “cab_path” property. In this form it basically means: take system %TEMP% location, and create a subfolder in it named as random GUID. This guaranties the uniqueness of the extract target location and you would not probably ever want to change it. Now, this magic location can be referenced as #CABPATH by other properties. For isntance, this is what we have done for “complete_command”. The values says: go to the folder the files were just extracted to, go down to its “exe” subfolder (remember ‘targetfolderpath’?) and run InstallWizard.exe.</p>  <p>And finally, some more details. Make sure “auto_start”, “wait_for_complete_command” and “cab_path_autodelete” are all set to ‘true’. Obviously, this will instruct our bootstrapper to start automatically, and auto delete the extracted files after the complete command completes. </p>  <h4>Linking and running</h4>  <p>Before building the project, you can run it with dotNetInstaller.exe to see the UI. Just run dotNetInstaller.exe /ConfigFile configuration.xml. But <strong><font color="#ff0000">this won’t embed any files</font></strong>. As a result, <strong><font color="#ff0000">you’ll be able to check only UI </font></strong>(which is obviously not the point for our case). <strong><font color="#ff0000">All settings which rely on embedded files will fail</font></strong>.</p>  <p>Instead, we’ll link the sources into final setup.exe. The following command does the job:</p>  <p>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <font face="Consolas">InstallerLinker.exe /o:setup.exe /t:dotNetInstaller.exe /c:install_config.xml /i:my.ico /a:source /v+</font></p>  <p>Here, /o: stands for output file name, /t: is a template of EXE file to make like – be sure to always set it to dotNetInstaller.exe, /c: is a path to the configuration file we have been editing all this time, /i: is obviously a path to the icon to use as an application icon for setup.exe, /a: is a path to the installation files to embed, and finally, /v+ turns the verbose logging on. In case there are no errors, you’ll see the following output:</p>  <p><a href="http://lh4.ggpht.com/_dqWPbhO6dtA/TUGNwsZQRGI/AAAAAAAAAZo/q1rMWEGoyxg/s1600-h/DNI_linker_output%5B3%5D.png"><img style="background-image: none; border-right-width: 0px; padding-left: 0px; padding-right: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px; padding-top: 0px" title="DNI_linker_output" border="0" alt="DNI_linker_output" src="http://lh4.ggpht.com/_dqWPbhO6dtA/TUGNxN02_zI/AAAAAAAAAZs/Cm6G3JH9ruM/DNI_linker_output_thumb%5B1%5D.png?imgmax=800" width="681" height="514" /></a></p>  <p>Now you have setup.exe, which extracts your installation files (showing the progress), and starts your main InstallWizard.exe in case of successful extraction.</p>  <p>That’s it! As usual, your comments and notes are welcome.</p>  </div>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -399,43 +436,6 @@ The best and maybe the only way to find out what&#8217;s going wrong with the in
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2009/01/20/iis-extension-webapppool/">IIS Extension: WebAppPool</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2009-01-20T22:06:00+02:00" pubdate data-updated="true">Jan 20<span>th</span>, 2009</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><div class='post'>
-Another challenge - another piece of fun with WiX. Imagine the following requirement: the installation program must install an application pool on IIS6+ environments; the multiple installed instances should use the same application pool. In other words, the application pool must be created with the first instance installation, and must be removed with the last instance uninstallation. <div><br /></div><div>A special element for maintaining IIS AppPools in IIS extension is called WebAppPool. As usual, we&#8217;ll wrap it into a separate component, so that it is created on install. Later, we&#8217;ll create a special custom action to deceive the standard removing mechanism on uninstall:</div><div><br /></div><div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">      &lt;Component DiskId=&#8221;1&#8221; Id=&#8221;CreateIISAppPool&#8221; Guid=&#8221;{YOURGUID-6C5B-4980-AD0B-E32FA2DBC1F4}&#8221; Directory=&#8221;WebsiteFolder&#8221;&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">         &lt;Condition&gt;IISMAJORVERSION &lt;&gt; &#8220;#5&#8221;&lt;/Condition&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">         &lt;iis:WebAppPool Id=&#8221;IISSiteAppPool6&#8221; Name=&#8221;[IISAPPPOOL_NAME]&#8221; MaxWorkerProcesses=&#8221;1&#8221; Identity=&#8221;networkService&#8221; /&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">         &lt;RegistryKey Root=&#8221;HKLM&#8221; Key=&#8221;$(var.ParentKey)&#8221;&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">            &lt;RegistryValue Name=&#8221;IISAppPoolName&#8221; Type=&#8221;string&#8221; Value=&#8221;[IISAPPPOOL_NAME]&#8221;/&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">         &lt;/RegistryKey&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">      &lt;/Component&gt;</span></span></div><div><br /></div></div><div>As you can see, the component is installed once the target system has IIS 6+. It creates a WebAppPool with the name provided in IISAPPPOOL_NAME public property. It also writes this name into a registry value, which resides under the instance-specific registry key. </div><div>With this component included into the MSI package, the app pool is created when the first instance is installed, and nothing happens for second and subsequent instances. </div><div><br /></div><div>Let&#8217;s examine the uninstall behavior. The MSI behaves natural - when it meets the component to uninstall, it removes the WebAppPool specified in it. But the IIS extension which performs the actual deletion of app pool, needs the name to be passed in it. So, the only thing we should do is to supply this action with a fake app pool name each time, except for the last instance uninstall.</div><div><br /></div><div>Here is the algorithm:</div><div><ol><li>search the registry for the app pool name as usual<br /></li><li>schedule a special action on unistall after AppSearch, which detects if this is the last instance being uninstalled, and if not, &#8220;breaks&#8221; the app pool name into something non-existent<br /></li></ol><div>The first point is quite straight-forward:</div><div><br /></div><div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">      &lt;Property Id=&#8221;IISAPPPOOL_NAME&#8221;&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">         &lt;RegistrySearch Id=&#8221;IISAppPoolName&#8221; Root=&#8221;HKLM&#8221; Key=&#8221;$(var.ParentKey)&#8221; Name=&#8221;IISAppPoolName&#8221; Type=&#8221;raw&#8221; /&gt;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">      &lt;/Property&gt;</span></span></div><div><br /></div></div><div>The second one is not natural, like any hack:</div><div><br /></div><div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">      [CustomAction]</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">      public static ActionResult ChangeWebAppPoolNameToDeceiveUninstall(Session session)</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">      {</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">         int numberOfInstalled = 1;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">         foreach (ProductInstallation product in ProductInstallation.GetRelatedProducts(session[&#8220;UpgradeCode&#8221;]))</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">         {</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">            if ((session[&#8220;ProductCode&#8221;] != product.ProductCode) &amp;&amp; product.IsInstalled)</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">            {</span></span></div><div><span class="Apple-style-span"  style="color: rgb(51, 51, 255);  font-size:13px;">               numberOfInstalled++;</span><br /></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">               break;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">            }</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">         }</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);"><br /></span></span></div><div><span class="Apple-style-span"  style="color: rgb(51, 51, 255);  font-size:13px;">         if (numberOfInstalled > 1)</span><br /></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">         {</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">            session[&#8220;IISAPPPOOL_NAME&#8221;] += string.Format(&#8220;|{0}&#8221;, DateTime.Now.ToLongTimeString());</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">         }</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);"><br /></span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">         return ActionResult.Success;</span></span></div><div><span class="Apple-style-span"  style="font-size:small;"><span class="Apple-style-span" style="color: rgb(51, 51, 255);">      }</span></span></div><div><br /></div></div><div>It iterates the related products (those sharing the UpgradeCode), and if it finds others installed, except for itself, it changes the app pool name we retrieved from registry into something unique, for instance, appends a unique string.</div><div><br /></div><div>Thus, the IIS custom action which is going to delete the app pool fails to find the one with the provided name, and does nothing. When, otherwise, it is the last instance being uninstalled, the retrieved app pool name remains unchanged, and the app pool is successfully removed.</div><div><br /></div><div>Note that the mentioned action should be <span class="Apple-style-span" style="font-weight: bold;">immediate</span>, should occur <span class="Apple-style-span" style="font-weight: bold;">after</span> AppSearch on <span class="Apple-style-span" style="font-weight: bold;">uninstall</span>.</div><div><br /></div><div>That&#8217;s it! I would appreciate any comments as usual.</div></div></div>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/3/">&larr; Older</a>
@@ -453,6 +453,10 @@ Another challenge - another piece of fun with WiX. Imagine the following require
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2014/07/31/migrate-attachments-from-ontime-to-tfs/">Migrate attachments from OnTime to TFS</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2013/01/03/nant-task-behaves-differently-in-092/">NAnt <copy> task behaves differently in 0.92 and prior versions</a>
       </li>
     
@@ -468,10 +472,6 @@ Another challenge - another piece of fun with WiX. Imagine the following require
         <a href="/blog/2012/08/15/default-attribute-values-for-custom/">Default attribute values for custom NAnt tasks</a>
       </li>
     
-      <li class="post">
-        <a href="/blog/2012/07/06/generate-solution-file-for-number-of-c/">Generate a solution file for a number of C# projects files in a folder</a>
-      </li>
-    
   </ul>
 </section>
 
@@ -485,7 +485,7 @@ Another challenge - another piece of fun with WiX. Imagine the following require
     </div>
   </div>
   <footer role="contentinfo"><p>
-  Copyright &copy; 2013 - Yan Sklyarenko -
+  Copyright &copy; 2014 - Yan Sklyarenko -
   <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
 </p>
 
