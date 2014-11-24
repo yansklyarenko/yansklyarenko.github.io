@@ -9,7 +9,7 @@
   <meta name="author" content="Yan Sklyarenko">
 
   
-  <meta name="description" content="Ok, it took me some time and efforts to set up the environment for blogging. Consider this post as a quick instruction to myself for the next time I& &hellip;">
+  <meta name="description" content="Recently I&rsquo;ve come across an interesting behavior in CruiseControl.NET in regards to the build queues and priorities. If there are many &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,56 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/11/24/build-queue-starvation-in-cc-dot-net/">Build Queue Starvation in CC.NET</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-11-24T22:54:00+02:00" pubdate data-updated="true">Nov 24<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Recently I&rsquo;ve come across an interesting behavior in CruiseControl.NET in regards to the build queues and priorities.</p>
+
+<p>If there are many projects on one server, and the server it not quite powerful, and more than one build queue is configured, and (that&rsquo;s the last one) these build queues have different priorities, you might end up in a situation when CC.NET checks for modifications the same set of projects all over again, and never starts an actual build. If you add the projects from that server to the CCTray, you can observe the number of projects queued for the build has reached a certain number and never decreases.</p>
+
+<p>This phenomenon is call &ldquo;build queue starvation&rdquo;. It was <a href="http://www.damirscorner.com/AvoidingQueueStarvationInCruiseControlNET.aspx">described and explained by Damir Arh in his blog</a>.</p>
+
+<p>Let me summarize the main idea.</p>
+
+<p>When one build queue has a higher priority than another queue, CC.NET favors the projects from the first queue when scheduling for modifications check. Now imagine that a trigger of the projects from the higher priority queue is quite small and the number of such projects is big enough. This leads to the situation when the first project in high priority queue is scheduled for build the second round before the last project in that queue has built its first time.</p>
+
+<p>As a result, the lower priority queue is &ldquo;starving&rdquo; &ndash; none of its projects ever gets a chance to be built. The fix suggested in the link above suits my needs &ndash; the trigger interval has just been increased.</p>
+
+<p>I should say it&rsquo;s not easy to google that if you&rsquo;re not familiar with the term &ldquo;build queue starvation&rdquo;. Besides, CC.NET doesn&rsquo;t feel bad in this situation, and hence doesn&rsquo;t help with any warnings &ndash; it just does its job iterating the queue and following the instructions.</p>
+
+<blockquote><p>Written with <a href="https://stackedit.io/">StackEdit</a>.</p></blockquote>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -525,43 +575,6 @@ bundle install
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/02/24/moving-to-dotnetinstaller-odd-basic-ui/">Moving to dotNetInstaller: The Odd Basic UI</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2011-02-24T18:36:00+02:00" pubdate data-updated="true">Feb 24<span>th</span>, 2011</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><div class='post'>
-<p>In the <a href="http://ysdevlog.blogspot.com/2011/02/moving-to-dotnetinstaller-launch.html">previous post</a>, I’ve outlined how to emulate the launch conditions behavior in dotNetInstaller. In that article I have also emphasized the importance of turning the UI into the Basic mode. It is necessary in order to avoid extra dialogs which require user interaction. If you followed the scenario I described, you might notice a strange behavior of the BasicUI mode: <strong><span >the message boxes disappear without any user participation</span></strong>. I thought it’s be a kind of a bug, but it was done on purpose. Take a look at this code (taken from dotNetInstaller sources):</p>  <pre class="code"><span style="color: blue">int </span>DniMessageBox::Show(<span style="color: blue">const </span>std::wstring&amp; p_lpszText, UINT p_nType <span style="color: green">/*=MB_OK*/</span>, UINT p_nDefaultResult <span style="color: green">/*=MB_OK*/</span>, UINT p_nIDHelp <span style="color: green">/*=0*/</span>)<br />{<br />   <span style="color: blue">int </span>result = p_nDefaultResult;<br />   <span style="color: blue">switch</span>(InstallUILevelSetting::Instance-&gt;GetUILevel())<br />   {<br />   <span style="color: green">// basic UI, dialogs appear and disappea<br />   </span><span style="color: blue">case </span>InstallUILevelBasic:<br />       {<br />           g_hHook = SetWindowsHookEx(WH_CBT, CBTProc, NULL, GetCurrentThreadId());<br />           CHECK_WIN32_BOOL(NULL != g_hHook, L<span style="color: #a31515">"Error setting CBT hook"</span>);<br />           result = AfxMessageBox(p_lpszText.c_str(), p_nType, p_nIDHelp);<br />           CHECK_BOOL(0 != result, L<span style="color: #a31515">"Not enough memory to display the message box."</span>);<br />           <span style="color: blue">if </span>(result == 0xFFFFFF) result = p_nDefaultResult;<br />       }<br />       <span style="color: blue">break</span>;<br /><br />   <span style="color: green">// silent, no UI<br />   </span><span style="color: blue">case </span>InstallUILevelSilent:<br />       result = p_nDefaultResult;<br />       <span style="color: blue">break</span>;<br /><br />   <span style="color: green">// full UI<br />   </span><span style="color: blue">case </span>InstallUILevelFull:<br />   <span style="color: blue">default</span>:<br />       result = AfxMessageBox(p_lpszText.c_str(), p_nType, p_nIDHelp);<br />       <span style="color: blue">break</span>;<br />   }<br /><br />   <span style="color: blue">return </span>result;<br />}</pre><p>So, as you can see, in Basic mode is shows the message box, and after some time (if you didn’t catch the moment to press any button), it automatically emulates the pressing of default choice button. I was quite surprised when I understood it was designed to work like this – that’s because I’ve never seen such a UI behavior…</p><p>But, anyway, I suspect that a user would like to know why the installation terminated  - a certain prerequisite is not installed. As long as the mentioned behavior is hard-coded, the only option is to create a custom build of dotNetInstaller. It’s obvious that the fix is trivial here – make the case for InstallUILevelBasic go the same branch as InstallUILevelFull, that is, just show the message box. Next step is to build the solution – see “Contributing to Source Code” chapter of dotNetInstaller.chm for instructions how to build.</p><p>Finally, install the custom build instead of the official one and make sure your setup project picks the changes up. That’s it!</p><p>As usual, I would appreciate any comments and notes!</p><p><br /></p></div>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -577,6 +590,10 @@ bundle install
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2014/11/24/build-queue-starvation-in-cc-dot-net/">Build queue starvation in CC.NET</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/08/01/setting-up-an-existing-blog-on-octopress/">Setting up an existing blog on Octopress</a>
       </li>
     
@@ -590,10 +607,6 @@ bundle install
     
       <li class="post">
         <a href="/blog/2012/11/19/possible-source-of-signtool-bad-format/">Possible source of the signtool &#8216;bad format&#8217; 0x800700C1 problem</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2012/10/29/a-solution-can-build-fine-from-inside/">A solution can build fine from inside the Visual Studio, but fail to build with msbuild.exe</a>
       </li>
     
   </ul>

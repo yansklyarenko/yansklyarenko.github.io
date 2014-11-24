@@ -135,12 +135,18 @@
         <lastmod>2014-08-01T00:28:49+03:00</lastmod>
     </url>
     <url>
+        <loc>
+            http://yansklyarenko.github.io/blog/2014/11/24/build-queue-starvation-in-cc-dot-net/
+        </loc>
+        <lastmod>2014-11-24T23:13:51+02:00</lastmod>
+    </url>
+    <url>
         <loc>http://yansklyarenko.github.io/blog/archives/</loc>
-        <lastmod>2014-08-01T00:28:49+03:00</lastmod>
+        <lastmod>2014-11-24T23:13:51+02:00</lastmod>
     </url>
     <url>
         <loc>http://yansklyarenko.github.io/</loc>
-        <lastmod>2014-08-01T00:28:49+03:00</lastmod>
+        <lastmod>2014-11-24T23:13:51+02:00</lastmod>
     </url>
     <url>
         <loc>http://yansklyarenko.github.io/robots.txt</loc>
