@@ -9,7 +9,7 @@
   <meta name="author" content="Yan Sklyarenko">
 
   
-  <meta name="description" content="Sitecore 6 validation was designed to validate the field values. Recently, I also found it useful to control the source of the complex field types, &hellip;">
+  <meta name="description" content="It’s not a secret that XSLT supports blocks of code, written in another language, to be used inside the stylesheet. It seems to have been there &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,43 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2009/07/19/xslt-inline-blocks-of-managed-code/">XSLT: Inline Blocks of Managed Code</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2009-07-19T23:24:00+03:00" pubdate data-updated="true">Jul 19<span>th</span>, 2009</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><div class='post'>
+<p>It’s not a secret that XSLT supports <a href="http://www.w3.org/TR/xslt11/#define-extension-functions">blocks of code</a>, written in another language, to be used inside the stylesheet. It seems to have been there from the very beginning – at least, <a href="http://www.w3.org/TR/xslt11/">XSLT 1.1</a> understands it. </p>  <p>However, Microsoft enriched this option with their own element, <a href="http://msdn.microsoft.com/en-us/library/ms256042.aspx">msxsl:script</a>. It offers pretty much the same functionality, but you can also write the code in C# or any other language of .NET platform. XSLT gurus might argue that it is superfluous stuff and it is unnecessary in 99% of cases. Well, as for me, XSLT lacks a number of useful functions in the standard library, such as ToLower/ToUpper, EndWith, etc. You never think about such low level things when programming C#, but you often have to invent a wheel trying to do the same with XSLT.</p>  <p>More details can be found in the <a href="http://msdn.microsoft.com/en-us/library/wxaw5z5e.aspx">official documentation</a>, but here is a brief extract:</p>  <ul>   <li>guess an extra prefix and let XSLT processor know about it:      <br />      <br />&lt;xsl:stylesheet version=&quot;1.0&quot;       <br />&#160; xmlns:xsl=&quot;<a href="http://www.w3.org/1999/XSL/Transform&quot;">http://www.w3.org/1999/XSL/Transform&quot;</a>       <br />&#160; xmlns:msxsl=&quot;urn:schemas-microsoft-com:xslt&quot;       <br />&#160; <strong>xmlns:ext=&quot;</strong><a href="http://my.domain.com/ext&quot;"><strong>http://my.domain.com/ext&quot;</strong></a>&gt;       <br />&#160;&#160; &#8230;       <br />&lt;/xsl:stylesheet&gt;       <br />      <br />Also, pay attention how msxsl prefix is defined – it is required to use msxsl:script syntax.       <br /></li>    <li>code your extension function:      <br />      <br />&lt;msxsl:script language=&quot;<strong>C#&quot;</strong> implements-prefix=&quot;<strong>ext</strong>&quot;&gt;       <br />&#160;&#160; public string ToUpper(string inString)       <br />&#160;&#160; {       <br />&#160;&#160;&#160;&#160;&#160; return inString.ToUpper();       <br />&#160;&#160; }       <br />&lt;/msxsl:script&gt;       <br /></li>    <li>and finally use it:      <br />      <br />&lt;xsl:value-of select=&quot;ext:ToUpper(@Name))&quot;/&gt; </li> </ul>  <p>Obviously, it is not a good idea to write lots of code this way. It makes the XSLT stylesheet larger and a bit harder to maintain. And, according to Microsoft, you should “<a href="http://msdn.microsoft.com/en-us/library/ms256042.aspx">avoid script blocks from XSLT files, because they require loading the script engine multiple times</a>”. Actually, if you created an XSLT stylesheet to fill it with tones of .NET code, you’re definitely doing something wrong. But it seems to be good addition to small, but useful “one-line” operations.</p>  <h4>Sitecore and msxsl:script</h4>  <p>If you plan to take advantage of inline blocks of C# code in Sitecore XSL rendering, you’ll have to do one more step. By default, .NET API to handle the XSL transforms disables the possibility to use msxsl:script. It is probably done for security reason. But the web.config of your Sitecore solution contains the setting <strong>EnableXslScripts</strong>, which you can easily set to true and be happy:</p>  <p>&lt;!&#8211;&#160; ENABLE XSLT SCRIPTS    <br />&#160;&#160;&#160;&#160;&#160; Determine whether XSLT script support should be enabled.     <br />&#160;&#160;&#160;&#160;&#160; If script support is not enabled, it will be an error if the XSLT file contains script blocks.     <br />&#160;&#160;&#160;&#160;&#160; <strong>Default value: false</strong>.     <br />&#8211;&gt;     <br />&lt;setting name=&quot;EnableXslScripts&quot; value=&quot;<strong>true</strong>&quot; /&gt; </p>  <p>The performance seems to be the same for this simple code either written in msxsl:script block, or wrapped into <a href="http://sdn.sitecore.net/upload/sitecore6/61/presentation_component_cookbook_sc61_a4.pdf">XSL extension</a>. So, the choice is yours.</p>  <h4>WiX and msxsl:script</h4>  <p>The <a href="http://wix.sourceforge.net/manual-wix3/heat.htm">heat.exe</a> utility of the WiX toolset has an option to run the harvested authoring against XSLT transform. This is a checkpoint when you can mutate the output before it is done. INHO, it is the most powerful extension option of Heat, because you can do anything with the XML fragment in XSLT.</p>  <p>However, it was a bit disappointing to find out the scripts are disabled by default, and it is not customizable, and the easiest way to fix this is to patch Heat itself and prepare custom WiX build. It would be great if this option is available one day in the base, either as a command line argument, or a configuration setting.</p>  <p>That’s it. If you have some experience with this trick, knowing its pros and cons deeper, share it here. And as usual, any comments are welcome.</p>  <p>P.S. this post was written with the help of Windows Live writer :-)</p>  </div>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -303,6 +340,10 @@ Well, this is the first message to my first weblog, and it should be outstanding
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/08/27/err-connection-refused/">ERR_CONNECTION_REFUSED</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/11/24/build-queue-starvation-in-cc-dot-net/">Build queue starvation in CC.NET</a>
       </li>
     
@@ -318,10 +359,6 @@ Well, this is the first message to my first weblog, and it should be outstanding
         <a href="/blog/2013/01/03/nant-task-behaves-differently-in-092/">NAnt <copy> task behaves differently in 0.92 and prior versions</a>
       </li>
     
-      <li class="post">
-        <a href="/blog/2012/11/19/possible-source-of-signtool-bad-format/">Possible source of the signtool &#8216;bad format&#8217; 0x800700C1 problem</a>
-      </li>
-    
   </ul>
 </section>
 
@@ -335,7 +372,7 @@ Well, this is the first message to my first weblog, and it should be outstanding
     </div>
   </div>
   <footer role="contentinfo"><p>
-  Copyright &copy; 2014 - Yan Sklyarenko -
+  Copyright &copy; 2015 - Yan Sklyarenko -
   <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
 </p>
 

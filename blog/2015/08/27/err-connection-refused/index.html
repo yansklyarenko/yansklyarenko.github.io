@@ -5,11 +5,11 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>Category: bootstrapper - .NET, Sitecore and setup development</title>
+  <title>ERR_CONNECTION_REFUSED - .NET, Sitecore and setup development</title>
   <meta name="author" content="Yan Sklyarenko">
 
   
-  <meta name="description" content="Category: bootstrapper">
+  <meta name="description" content="Today I have faced with the problem installing Basic Authentication feature into the Web Server role on Windows 2012 R2. The wizard kept throwing &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -18,7 +18,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://yansklyarenko.github.ioblog/categories/bootstrapper">
+  <link rel="canonical" href="http://yansklyarenko.github.io/blog/2015/08/27/err-connection-refused">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title=".NET, Sitecore and setup development" type="application/atom+xml">
@@ -64,63 +64,97 @@
   <div id="main">
     <div id="content">
       <div>
-<article role="article">
+<article class="hentry" role="article">
   
   <header>
-    <h1 class="entry-title">Category: Bootstrapper</h1>
+    
+      <h1 class="entry-title">ERR_CONNECTION_REFUSED</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-08-27T22:19:00+03:00" pubdate data-updated="true">Aug 27<span>th</span>, 2015</time>
+        
+      </p>
     
   </header>
-  
-  <div id="blog-archives" class="category">
 
 
+<div class="entry-content"><p>Today I have faced with the problem installing Basic Authentication feature into the Web Server role on Windows 2012 R2. The wizard kept throwing various errors, including scary OutOfMemoryException. A quick googling that has found a suggestion to run <code>netsh http show iplisten</code> and add 127.0.0.1 (aka Home Sweet Home) to the list if it&rsquo;s not there. I gave it a try without giving it a thought first.</p>
 
-  
-  <h2>2011</h2>
+<p>The initial problem has not been solved &ndash; the wizard kept failing to add that feature, and I finally resolved it with the mighty PowerShell:</p>
 
-<article>
-  
-<h1><a href="/blog/2011/02/24/moving-to-dotnetinstaller-odd-basic-ui/">Moving to dotNetInstaller: the odd Basic UI</a></h1>
-<time datetime="2011-02-24T18:36:00+02:00" pubdate><span class='month'>Feb</span> <span class='day'>24</span> <span class='year'>2011</span></time>
-
-<footer>
-  <span class="categories">posted in <a class='category' href='/blog/categories/bootstrapper/'>bootstrapper</a>, <a class='category' href='/blog/categories/dotnetinstaller/'>dotNetInstaller</a>, <a class='category' href='/blog/categories/install/'>install</a></span>
-</footer>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='powershell'><span class='line'><span class="nb">Import-Module</span> <span class="n">ServerManager</span>
+</span><span class='line'><span class="nb">Add-WindowsFeature</span> <span class="n">Web-Basic-Auth</span>
+</span></code></pre></td></tr></table></div></figure>
 
 
-</article>
+<p>Later on I had to browse for a website hosted on that server, and I suddenly saw <em>This webpage is not available</em> message. Hmm&hellip; First off, I&rsquo;ve verified that the website works locally &ndash; and it did. This gave me another hint and I checked whether the bindings are set up correctly. And they were! Finally, I started to think that it&rsquo;s Basic Authentication feature to blame &ndash; yeah, I know, that was a stupid assumption, but hey, stupid assumptions feel very comfortable for brain when it faces with the magic&hellip;</p>
 
+<p>Anyway, fortunately I recalled that quick dumb action I did with netsh, and the magic has immediately turned into the dust, revealing someone&rsquo;s ignorance&hellip; Turns out, if <code>iplisten</code> does not list anything, it means listen to everything, any IP address. When you add something there, it starts listening to that IP address only.</p>
 
+<p>Thus, it was all resolved by deleting 127.0.0.1 from that list with <code>netsh http delete iplisten ipaddress=127.0.0.1</code>.</p>
 
-<article>
-  
-<h1><a href="/blog/2011/02/18/moving-to-dotnetinstaller-launch/">Moving to dotNetInstaller: launch conditions</a></h1>
-<time datetime="2011-02-18T15:59:00+02:00" pubdate><span class='month'>Feb</span> <span class='day'>18</span> <span class='year'>2011</span></time>
+<p>Want some quick conclusion? <strong>Think first, then act!!!</strong></p>
 
-<footer>
-  <span class="categories">posted in <a class='category' href='/blog/categories/bootstrapper/'>bootstrapper</a>, <a class='category' href='/blog/categories/dotnetinstaller/'>dotNetInstaller</a>, <a class='category' href='/blog/categories/install/'>install</a></span>
-</footer>
-
-
-</article>
-
-
-
-<article>
-  
-<h1><a href="/blog/2011/01/27/moving-to-dotnetinstaller-simplest-case/">Moving to dotNetInstaller: the simplest case</a></h1>
-<time datetime="2011-01-27T17:22:00+02:00" pubdate><span class='month'>Jan</span> <span class='day'>27</span> <span class='year'>2011</span></time>
-
-<footer>
-  <span class="categories">posted in <a class='category' href='/blog/categories/bootstrapper/'>bootstrapper</a>, <a class='category' href='/blog/categories/dotnetinstaller/'>dotNetInstaller</a>, <a class='category' href='/blog/categories/install/'>install</a></span>
-</footer>
-
-
-</article>
-
+<blockquote><p>Written with <a href="https://stackedit.io/">StackEdit</a>.</p></blockquote>
 </div>
 
+
+  <footer>
+    <p class="meta">
+      
   
+
+<span class="byline author vcard">Posted by <span class="fn">Yan Sklyarenko</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-08-27T22:19:00+03:00" pubdate data-updated="true">Aug 27<span>th</span>, 2015</time>
+      
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://yansklyarenko.github.io/blog/2015/08/27/err-connection-refused/" data-via="" data-counturl="http://yansklyarenko.github.io/blog/2015/08/27/err-connection-refused/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2014/11/24/build-queue-starvation-in-cc-dot-net/" title="Previous Post: Build queue starvation in CC.NET">&laquo; Build queue starvation in CC.NET</a>
+      
+      
+    </p>
+  </footer>
 </article>
 
 

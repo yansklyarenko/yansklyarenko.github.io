@@ -4,7 +4,7 @@
   <title><![CDATA[.NET, Sitecore and setup development]]></title>
   <link href="http://yansklyarenko.github.io/atom.xml" rel="self"/>
   <link href="http://yansklyarenko.github.io/"/>
-  <updated>2014-11-25T00:25:56+02:00</updated>
+  <updated>2015-08-27T22:41:54+03:00</updated>
   <id>http://yansklyarenko.github.io/</id>
   <author>
     <name><![CDATA[Yan Sklyarenko]]></name>
@@ -12,6 +12,34 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[ERR_CONNECTION_REFUSED]]></title>
+    <link href="http://yansklyarenko.github.io/blog/2015/08/27/err-connection-refused/"/>
+    <updated>2015-08-27T22:19:00+03:00</updated>
+    <id>http://yansklyarenko.github.io/blog/2015/08/27/err-connection-refused</id>
+    <content type="html"><![CDATA[<p>Today I have faced with the problem installing Basic Authentication feature into the Web Server role on Windows 2012 R2. The wizard kept throwing various errors, including scary OutOfMemoryException. A quick googling that has found a suggestion to run <code>netsh http show iplisten</code> and add 127.0.0.1 (aka Home Sweet Home) to the list if it&rsquo;s not there. I gave it a try without giving it a thought first.</p>
+
+<p>The initial problem has not been solved &ndash; the wizard kept failing to add that feature, and I finally resolved it with the mighty PowerShell:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='powershell'><span class='line'><span class="nb">Import-Module</span> <span class="n">ServerManager</span>
+</span><span class='line'><span class="nb">Add-WindowsFeature</span> <span class="n">Web-Basic-Auth</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Later on I had to browse for a website hosted on that server, and I suddenly saw <em>This webpage is not available</em> message. Hmm&hellip; First off, I&rsquo;ve verified that the website works locally &ndash; and it did. This gave me another hint and I checked whether the bindings are set up correctly. And they were! Finally, I started to think that it&rsquo;s Basic Authentication feature to blame &ndash; yeah, I know, that was a stupid assumption, but hey, stupid assumptions feel very comfortable for brain when it faces with the magic&hellip;</p>
+
+<p>Anyway, fortunately I recalled that quick dumb action I did with netsh, and the magic has immediately turned into the dust, revealing someone&rsquo;s ignorance&hellip; Turns out, if <code>iplisten</code> does not list anything, it means listen to everything, any IP address. When you add something there, it starts listening to that IP address only.</p>
+
+<p>Thus, it was all resolved by deleting 127.0.0.1 from that list with <code>netsh http delete iplisten ipaddress=127.0.0.1</code>.</p>
+
+<p>Want some quick conclusion? <strong>Think first, then act!!!</strong></p>
+
+<blockquote><p>Written with <a href="https://stackedit.io/">StackEdit</a>.</p></blockquote>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Build queue starvation in CC.NET]]></title>
@@ -339,16 +367,6 @@ bundle install
     <id>http://yansklyarenko.github.io/blog/2009/08/16/warning-to-vbnet-developers</id>
     <content type="html"><![CDATA[<div class='post'>
 <p>Avoid defining methods with default arguments!</p>  <p>Today I have been exploring the “Member design” chapter of a great book of <a href="http://blogs.msdn.com/kcwalina/">Cwalina</a>/<a href="http://blogs.msdn.com/brada/">Abrams</a> “<a href="http://www.amazon.com/Framework-Design-Guidelines-Conventions-Development/dp/0321545613/ref=dp_ob_title_bk">Framework Design Guidelines</a>”, and found a guideline which shocked me a bit. No, the guideline itself is correct and valuable. I just was never thinking it works like this.</p>  <p>VB.NET has a language feature called default arguments. When you define a method in your class, you can specify default values to the optional parameters to be taken when this parameter is omitted. As far as I understand, this is a kind of alternative to the method overloading. </p>  <p>Consider the following code:</p>  <p><font color="#0000ff">Public Class DefaultValues      <br />&#160;&#160;&#160; Public Function Sum(ByVal a As Integer, Optional ByVal b As Integer =</font> <strong><font color="#ff0000">100</font></strong><font color="#0000ff">)      <br />&#160;&#160;&#160;&#160;&#160;&#160;&#160; Sum = a + b       <br />&#160;&#160;&#160; End Function       <br />&#160; End Class</font></p>  <p>(I speak C# myself, so excuse me my poor VB ;-))</p>  <p>Let’s say we compile this code into a DLL and we have a client console application to utilize that library:</p>  <p><font color="#0000ff">Module TestDefaultValues      <br />&#160;&#160;&#160; Sub Main()       <br />&#160;&#160;&#160;&#160;&#160;&#160;&#160; Dim df As DefaultValues.DefaultValues = New DefaultValues.DefaultValues()       <br />&#160;&#160;&#160;&#160;&#160;&#160;&#160; Console.WriteLine(df.Sum(<strong><font color="#ff0000">55</font></strong>))       <br />&#160;&#160;&#160; End Sub       <br />&#160; End Module</font></p>  <p>Compile everything and run TestDefaultValues.exe. The result is predictable: <strong><font color="#ff0000">155</font></strong>.</p>  <p>Now change the default value from 100 to 200 and compile only the library. DO NOT recompile the client application. Run it again, and it is still <strong><font color="#ff0000">155</font></strong>!</p>  <p>This is why it is strongly not recommended to use default arguments instead of normal method overloading. And this issue is why C# doesn’t expose this technique. </p>  <p>Be careful, VB.NET developers! And long live C#! :-)</p>  </div>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[XSLT: inline blocks of managed code]]></title>
-    <link href="http://yansklyarenko.github.io/blog/2009/07/19/xslt-inline-blocks-of-managed-code/"/>
-    <updated>2009-07-19T23:24:00+03:00</updated>
-    <id>http://yansklyarenko.github.io/blog/2009/07/19/xslt-inline-blocks-of-managed-code</id>
-    <content type="html"><![CDATA[<div class='post'>
-<p>It’s not a secret that XSLT supports <a href="http://www.w3.org/TR/xslt11/#define-extension-functions">blocks of code</a>, written in another language, to be used inside the stylesheet. It seems to have been there from the very beginning – at least, <a href="http://www.w3.org/TR/xslt11/">XSLT 1.1</a> understands it. </p>  <p>However, Microsoft enriched this option with their own element, <a href="http://msdn.microsoft.com/en-us/library/ms256042.aspx">msxsl:script</a>. It offers pretty much the same functionality, but you can also write the code in C# or any other language of .NET platform. XSLT gurus might argue that it is superfluous stuff and it is unnecessary in 99% of cases. Well, as for me, XSLT lacks a number of useful functions in the standard library, such as ToLower/ToUpper, EndWith, etc. You never think about such low level things when programming C#, but you often have to invent a wheel trying to do the same with XSLT.</p>  <p>More details can be found in the <a href="http://msdn.microsoft.com/en-us/library/wxaw5z5e.aspx">official documentation</a>, but here is a brief extract:</p>  <ul>   <li>guess an extra prefix and let XSLT processor know about it:      <br />      <br />&lt;xsl:stylesheet version=&quot;1.0&quot;       <br />&#160; xmlns:xsl=&quot;<a href="http://www.w3.org/1999/XSL/Transform&quot;">http://www.w3.org/1999/XSL/Transform&quot;</a>       <br />&#160; xmlns:msxsl=&quot;urn:schemas-microsoft-com:xslt&quot;       <br />&#160; <strong>xmlns:ext=&quot;</strong><a href="http://my.domain.com/ext&quot;"><strong>http://my.domain.com/ext&quot;</strong></a>&gt;       <br />&#160;&#160; &#8230;       <br />&lt;/xsl:stylesheet&gt;       <br />      <br />Also, pay attention how msxsl prefix is defined – it is required to use msxsl:script syntax.       <br /></li>    <li>code your extension function:      <br />      <br />&lt;msxsl:script language=&quot;<strong>C#&quot;</strong> implements-prefix=&quot;<strong>ext</strong>&quot;&gt;       <br />&#160;&#160; public string ToUpper(string inString)       <br />&#160;&#160; {       <br />&#160;&#160;&#160;&#160;&#160; return inString.ToUpper();       <br />&#160;&#160; }       <br />&lt;/msxsl:script&gt;       <br /></li>    <li>and finally use it:      <br />      <br />&lt;xsl:value-of select=&quot;ext:ToUpper(@Name))&quot;/&gt; </li> </ul>  <p>Obviously, it is not a good idea to write lots of code this way. It makes the XSLT stylesheet larger and a bit harder to maintain. And, according to Microsoft, you should “<a href="http://msdn.microsoft.com/en-us/library/ms256042.aspx">avoid script blocks from XSLT files, because they require loading the script engine multiple times</a>”. Actually, if you created an XSLT stylesheet to fill it with tones of .NET code, you’re definitely doing something wrong. But it seems to be good addition to small, but useful “one-line” operations.</p>  <h4>Sitecore and msxsl:script</h4>  <p>If you plan to take advantage of inline blocks of C# code in Sitecore XSL rendering, you’ll have to do one more step. By default, .NET API to handle the XSL transforms disables the possibility to use msxsl:script. It is probably done for security reason. But the web.config of your Sitecore solution contains the setting <strong>EnableXslScripts</strong>, which you can easily set to true and be happy:</p>  <p>&lt;!&#8211;&#160; ENABLE XSLT SCRIPTS    <br />&#160;&#160;&#160;&#160;&#160; Determine whether XSLT script support should be enabled.     <br />&#160;&#160;&#160;&#160;&#160; If script support is not enabled, it will be an error if the XSLT file contains script blocks.     <br />&#160;&#160;&#160;&#160;&#160; <strong>Default value: false</strong>.     <br />&#8211;&gt;     <br />&lt;setting name=&quot;EnableXslScripts&quot; value=&quot;<strong>true</strong>&quot; /&gt; </p>  <p>The performance seems to be the same for this simple code either written in msxsl:script block, or wrapped into <a href="http://sdn.sitecore.net/upload/sitecore6/61/presentation_component_cookbook_sc61_a4.pdf">XSL extension</a>. So, the choice is yours.</p>  <h4>WiX and msxsl:script</h4>  <p>The <a href="http://wix.sourceforge.net/manual-wix3/heat.htm">heat.exe</a> utility of the WiX toolset has an option to run the harvested authoring against XSLT transform. This is a checkpoint when you can mutate the output before it is done. INHO, it is the most powerful extension option of Heat, because you can do anything with the XML fragment in XSLT.</p>  <p>However, it was a bit disappointing to find out the scripts are disabled by default, and it is not customizable, and the easiest way to fix this is to patch Heat itself and prepare custom WiX build. It would be great if this option is available one day in the base, either as a command line argument, or a configuration setting.</p>  <p>That’s it. If you have some experience with this trick, knowing its pros and cons deeper, share it here. And as usual, any comments are welcome.</p>  <p>P.S. this post was written with the help of Windows Live writer :-)</p>  </div>
 ]]></content>
   </entry>
   
