@@ -4,7 +4,7 @@
   <title><![CDATA[.NET, Sitecore and setup development]]></title>
   <link href="http://yansklyarenko.github.io/atom.xml" rel="self"/>
   <link href="http://yansklyarenko.github.io/"/>
-  <updated>2017-11-07T00:40:17+02:00</updated>
+  <updated>2017-11-07T00:46:58+02:00</updated>
   <id>http://yansklyarenko.github.io/</id>
   <author>
     <name><![CDATA[Yan Sklyarenko]]></name>
@@ -14,7 +14,7 @@
 
   
   <entry>
-    <title type="html"><![CDATA[VSTS and Teamcity Commit Status Publisher]]></title>
+    <title type="html"><![CDATA[VSTS and TeamCity Commit Status Publisher]]></title>
     <link href="http://yansklyarenko.github.io/blog/2017/11/06/vsts-and-teamcity-commit-status-publisher/"/>
     <updated>2017-11-06T22:24:00+02:00</updated>
     <id>http://yansklyarenko.github.io/blog/2017/11/06/vsts-and-teamcity-commit-status-publisher</id>
