@@ -9,7 +9,7 @@
   <meta name="author" content="Yan Sklyarenko">
 
   
-  <meta name="description" content="I initially blogged about multiple instance installations couple of years ago. The way I described it worked fine for me, but the time flies and the &hellip;">
+  <meta name="description" content="This topic might seem too minor for a blog post. You can argue that it’s covered by a simple call to a dir /s command. Well, that’s true unless &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,43 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/03/02/simple-batch-script-to-dump-contents-of/">A Simple Batch Script to Dump the Contents of the Folder and Its Subfolders Recursively</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-03-02T11:13:00+02:00" pubdate data-updated="true">Mar 2<span>nd</span>, 2012</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><div class='post'>
+<div dir="ltr" style="text-align: left;" trbidi="on">This topic might seem too minor for a blog post. You can argue that it’s covered by a simple call to a <strong><a href="http://ss64.com/nt/dir.html">dir /s</a></strong> command. Well, that’s true unless you need to perform some actions with each line in the list. In this case it could be tricky if you do not use BATCH files on a daily basis. <br />Imagine you need to dump the file paths in a folder and its subfolders to a plain list. Besides, you’d like to replace the absolute path prefix with UNC share prefix, because each path contains a shared folder and each file will be accessible from inside the network. So, here goes the script:<br /><div class="wlWriterEditableSmartContent" id="scid:f32c3428-b7e9-4f15-a8ea-c502c7ff2e88:5c4445c5-847e-4642-8167-0397b2755daa" style="display: inline; float: none; margin: 0px; padding-bottom: 0px; padding-left: 0px; padding-right: 0px; padding-top: 0px;"><pre class="brush: vb;">@echo off<br />set _from=*repo<br />set _to=\\server\repo<br />FOR /F "tokens=*" %%G IN ('dir /s /b /a:-D /o:-D') DO (CALL :replace %%G) &gt;&gt; files.txt<br />GOTO :eof<br /><br />:replace<br /> set _str=%1<br /> call set _result=%%_str:%_from%=%_to%%%<br /> echo %_result%<br />GOTO :eof</pre></div><br />Let’s start from the <a href="http://ss64.com/nt/for_cmd.html">FOR</a> loop. This version of the command loops through the output of another command, in this case, dir. Essentially, we ask dir to run recursively (/s), ignore directories (/a:-D), sort by date/time, newest first (/o:-D) and output just the basic information (/b). And the FOR command works on top of this, iterating all lines of dir output (tokens=*), calling a subroutine :replace for each line and streaming the final result into files.txt.<br /><br />The subroutine does a very simple thing – it replaces one part of the string with another. Let’s step through it anyway. First, it gets the input parameter (%1) and saves it into _str variable. I suppose %1 could be used as is in the expression below, but the number of ‘%’ signs drives me crazy even without it. The next line is the most important – it does the <a href="http://ss64.com/nt/syntax-replace.html">actual replacement job</a>. I’ll try to explain all these % signs: the variable inside the expression must be wrapped with % (like _from and _to); the expression itself should go between % and % as if it’s a variable itself. And the outermost pair of % is there for escaping purpose, I suppose – you will avoid it if you use just string literals for tokens in expression. Note also the usage of the <a href="http://ss64.com/nt/call.html">CALL SET statement</a>. Finally, the last line of the subroutine echoes the result.<br /><br />There’s one last point worth attention. The _from variable, which represents the token to replace, contains a * sign. It means “replace ‘repo’ and everything before it” in the replace expression.<br /><br />The best resource I found on the topic is <a href="http://ss64.com/nt/">http://ss64.com/nt/</a>.</div></div>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -399,43 +436,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2009/08/16/warning-to-vbnet-developers/">A Warning to VB.NET Developers</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2009-08-16T23:43:00+03:00" pubdate data-updated="true">Aug 16<span>th</span>, 2009</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><div class='post'>
-<p>Avoid defining methods with default arguments!</p>  <p>Today I have been exploring the “Member design” chapter of a great book of <a href="http://blogs.msdn.com/kcwalina/">Cwalina</a>/<a href="http://blogs.msdn.com/brada/">Abrams</a> “<a href="http://www.amazon.com/Framework-Design-Guidelines-Conventions-Development/dp/0321545613/ref=dp_ob_title_bk">Framework Design Guidelines</a>”, and found a guideline which shocked me a bit. No, the guideline itself is correct and valuable. I just was never thinking it works like this.</p>  <p>VB.NET has a language feature called default arguments. When you define a method in your class, you can specify default values to the optional parameters to be taken when this parameter is omitted. As far as I understand, this is a kind of alternative to the method overloading. </p>  <p>Consider the following code:</p>  <p><font color="#0000ff">Public Class DefaultValues      <br />&#160;&#160;&#160; Public Function Sum(ByVal a As Integer, Optional ByVal b As Integer =</font> <strong><font color="#ff0000">100</font></strong><font color="#0000ff">)      <br />&#160;&#160;&#160;&#160;&#160;&#160;&#160; Sum = a + b       <br />&#160;&#160;&#160; End Function       <br />&#160; End Class</font></p>  <p>(I speak C# myself, so excuse me my poor VB ;-))</p>  <p>Let’s say we compile this code into a DLL and we have a client console application to utilize that library:</p>  <p><font color="#0000ff">Module TestDefaultValues      <br />&#160;&#160;&#160; Sub Main()       <br />&#160;&#160;&#160;&#160;&#160;&#160;&#160; Dim df As DefaultValues.DefaultValues = New DefaultValues.DefaultValues()       <br />&#160;&#160;&#160;&#160;&#160;&#160;&#160; Console.WriteLine(df.Sum(<strong><font color="#ff0000">55</font></strong>))       <br />&#160;&#160;&#160; End Sub       <br />&#160; End Module</font></p>  <p>Compile everything and run TestDefaultValues.exe. The result is predictable: <strong><font color="#ff0000">155</font></strong>.</p>  <p>Now change the default value from 100 to 200 and compile only the library. DO NOT recompile the client application. Run it again, and it is still <strong><font color="#ff0000">155</font></strong>!</p>  <p>This is why it is strongly not recommended to use default arguments instead of normal method overloading. And this issue is why C# doesn’t expose this technique. </p>  <p>Be careful, VB.NET developers! And long live C#! :-)</p>  </div>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/3/">&larr; Older</a>
@@ -453,6 +453,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2017/11/06/vsts-and-teamcity-commit-status-publisher/">VSTS and Teamcity Commit Status Publisher</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/08/27/err-connection-refused/">ERR_CONNECTION_REFUSED</a>
       </li>
     
@@ -468,10 +472,6 @@
         <a href="/blog/2014/07/31/migrate-attachments-from-ontime-to-tfs/">Migrate attachments from OnTime to TFS</a>
       </li>
     
-      <li class="post">
-        <a href="/blog/2013/01/03/nant-task-behaves-differently-in-092/">NAnt <copy> task behaves differently in 0.92 and prior versions</a>
-      </li>
-    
   </ul>
 </section>
 
@@ -485,7 +485,7 @@
     </div>
   </div>
   <footer role="contentinfo"><p>
-  Copyright &copy; 2015 - Yan Sklyarenko -
+  Copyright &copy; 2017 - Yan Sklyarenko -
   <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
 </p>
 

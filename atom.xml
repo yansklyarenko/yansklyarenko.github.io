@@ -4,7 +4,7 @@
   <title><![CDATA[.NET, Sitecore and setup development]]></title>
   <link href="http://yansklyarenko.github.io/atom.xml" rel="self"/>
   <link href="http://yansklyarenko.github.io/"/>
-  <updated>2015-08-27T22:41:54+03:00</updated>
+  <updated>2017-11-07T00:40:17+02:00</updated>
   <id>http://yansklyarenko.github.io/</id>
   <author>
     <name><![CDATA[Yan Sklyarenko]]></name>
@@ -12,6 +12,99 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[VSTS and Teamcity Commit Status Publisher]]></title>
+    <link href="http://yansklyarenko.github.io/blog/2017/11/06/vsts-and-teamcity-commit-status-publisher/"/>
+    <updated>2017-11-06T22:24:00+02:00</updated>
+    <id>http://yansklyarenko.github.io/blog/2017/11/06/vsts-and-teamcity-commit-status-publisher</id>
+    <content type="html"><![CDATA[<p>Some time ago VSTS team added a feature called <a href="https://docs.microsoft.com/en-us/vsts/release-notes/2017/aug-04-team-services#pull-request-status-extensibility-in-public-preview">Pull Request Status Extensibility</a>. It unlocked the door for the external services to post custom statuses to the pull requests created in Git repositories hosted in VSTS. Once the status is posted, it is possible to make a branching policy out of it, and this fact makes it a powerful feature.</p>
+
+<blockquote><p>According to the <a href="https://docs.microsoft.com/en-us/vsts/release-notes/index">VSTS Feature Timeline</a> Pull Request Status Extensibility will arrive in On-Prem TFS 2018 RC1 and future.</p></blockquote>
+
+<p>Fortunately, TeamCity has just added the option to send pull request statuses to its <a href="https://confluence.jetbrains.com/display/TCD10/Commit+Status+Publisher">Commit Status Publisher</a> in the most recent build of the version 2017.2.</p>
+
+<blockquote><p>At the moment of writing this post, the version 2017.2 is still an EAP, and I&rsquo;ll use <a href="https://blog.jetbrains.com/teamcity/2017/11/teamcity-2017-2-eap4-is-available/">2017.2 EAP4</a> as the first build the feature has arrived with.</p></blockquote>
+
+<p>These two pieces assemble in a nice picture where you can host your project in VSTS while keeping the build part entirely in TeamCity. In this post, I&rsquo;ll guide you through the steps required to configure this beautiful setup.</p>
+
+<h2>TeamCity: basic setup of the build project</h2>
+
+<p>To begin with, we&rsquo;ll add <a href="https://confluence.jetbrains.com/display/TCD10/Integrating+TeamCity+with+VCS+Hosting+Services#IntegratingTeamCitywithVCSHostingServices-ConnectingtoVisualStudioTeamServices">a connection to VSTS</a> in TeamCity. It is not required, but helps a lot in the further configuration of VCS root and build features. Navigate to <strong>Administration > &lt;Root Project&gt; > Connections</strong> and click &ldquo;Add Connection&rdquo; button:</p>
+
+<p><img src="http://yansklyarenko.github.io/images/november2017/tc_connection.png"></p>
+
+<p>Now, let&rsquo;s create a new build project. Thanks to the connection configured prior to this step, the VCS root configuration is as easy as clicking a Visual Studio icon:</p>
+
+<p><img src="http://yansklyarenko.github.io/images/november2017/tc_vcsroot.png"></p>
+
+<p>Choose the repository we&rsquo;d like to target and TeamCity will form the proper clone URL. Note that Branch Specification field is set to watch pull requests too.</p>
+
+<p>For the sake of this demo the build project itself is quite simple: it contains just one build configuration, which in its turn consists of a single PowerShell build step faking the real build process by several seconds sleep. There&rsquo;s also a VCS trigger to run the build on the changes in default branch (<code>+:&lt;default&gt;</code>) as well as pull request merges (<code>+:pull/*/merge</code>).</p>
+
+<p>Finally, we should configure the Commit Status Publisher, which does all the magic. Switch to the Build Feature on the left pane, and click &ldquo;Add Build Feature&rdquo; button:</p>
+
+<p><img src="http://yansklyarenko.github.io/images/november2017/tc_commit_status_publisher.png"></p>
+
+<p>Note the checkbox that hides in the Advanced Options view. It should be turned on in order to enable pull request status publishing.</p>
+
+<blockquote><p>Ideally, you should generate another personal access token in VSTS with only <code>Code (status)</code> and <code>Code (read)</code> scopes specified. However, being lazy, I&rsquo;ve just clicked the <strong>magic wand</strong> icon and TeamCity pulled the <strong>all-scopes</strong> access token from the connection.</p></blockquote>
+
+<h2>VSTS: creating a pull request with status from TeamCity</h2>
+
+<p>Now, when we&rsquo;re done with TeamCity configuration, let&rsquo;s go ahead and create a pull request in out VSTS Git repository. When TeamCity detects the change, it starts building the pull request. At the same time, the pull request view in VSTS displays appropriate status:</p>
+
+<p><img src="http://yansklyarenko.github.io/images/november2017/vsts_pr_status_building.png"></p>
+
+<p>Once the build has completed, the status is refreshed:</p>
+
+<p><img src="http://yansklyarenko.github.io/images/november2017/vsts_pr_status_success.png"></p>
+
+<p>If you click the link, it navigates to the completed build page in TeamCity:</p>
+
+<p><img src="http://yansklyarenko.github.io/images/november2017/tc_pr_success.png"></p>
+
+<h2>VSTS: Make branch policy out of the TeamCity build status</h2>
+
+<p>As long as the external service has published its status to the pull request once, it is possible to configure it to serve as a branch policy for this and all other pull requests in this repository. Let&rsquo;s do this now.</p>
+
+<p>Navigate to the branch policies of the <code>master</code> branch and click &ldquo;Add Service&rdquo; in &ldquo;Require approval from external services&rdquo; section:</p>
+
+<p><img src="http://yansklyarenko.github.io/images/november2017/vsts_branch_policy.png"></p>
+
+<p>Choose the target service from the dropdown (its name is combined of TeamCity build project and configuration) and modify other options according to your needs. Note that it is possible to configure the service the way it behaves as a normal branch policy. For example, the status can be required and will expire when the source branch gets an update:</p>
+
+<p><img src="http://yansklyarenko.github.io/images/november2017/vsts_add_service.png"></p>
+
+<p>Finally, click Save and push some other change to the existing pull request. As soon as the pull request is updated, the <code>Status</code> section disappears and a new policy is displayed. It stays in the waiting mode until the TeamCity build is started:</p>
+
+<p><img src="http://yansklyarenko.github.io/images/november2017/vsts_policy_new.png"></p>
+
+<p>Once the build is started, the policy status changes to <code>Pending</code>:</p>
+
+<p><img src="http://yansklyarenko.github.io/images/november2017/vsts_policy_building.png"></p>
+
+<p>Finally, when the build is done, it is also reflected on the custom policy status:</p>
+
+<p><img src="http://yansklyarenko.github.io/images/november2017/vsts_policy_success.png"></p>
+
+<p>Similar to the pull request status behavior, it is possible to click the link and navigate to the build view in TeamCity.</p>
+
+<h2>TeamCity: build normal branches and post the status back to VSTS</h2>
+
+<p>When we merge the pull request, the build of the master branch is triggered in TeamCity. If you switch to the Branches view in VSTS, you can see the <code>In Progress</code> type of icon in the Build column of the master branch:</p>
+
+<p><img src="http://yansklyarenko.github.io/images/november2017/vsts_master_building.png"></p>
+
+<p>Once the build is completed, the icon changes to the appropriate state (<code>Success</code> in our case):</p>
+
+<p><img src="http://yansklyarenko.github.io/images/november2017/vsts_master_success.png"></p>
+
+<h2>Conclusion</h2>
+
+<p>In this article, we&rsquo;ve quickly run through the steps required to configure close integration between VSTS Git repository and TeamCity build project. Note that I haven&rsquo;t written a single line of code for this to happen. This setup might be useful for those projects that have extensive build configuration in TeamCity, but would like to benefit from the fantastic pull request user experience in VSTS.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[ERR_CONNECTION_REFUSED]]></title>
@@ -357,16 +450,6 @@ bundle install
     <id>http://yansklyarenko.github.io/blog/2009/08/18/webdirproperties-anonymoususer</id>
     <content type="html"><![CDATA[<div class='post'>
 <p>When you specify a <em>WebDirProperties</em> element to be used by the sites you install (configure) with WiX, you might also want to allow anonymous access to this site. Fortunately, there’s an attribute <em>AnonymousAccess</em>, which being set to ‘yes’ allows anonymous access to IIS web site.</p>  <p>NOTE: If you don’t address any property of “authorization” group (<em>AnonymousAccess, BasicAuthentication, DigestAuthentication, PassportAuthentication</em> or <em>WindowsAuthentication</em>) in your <em>WebDirProperties</em>, the site inherits those from w3svc root. If you set at least one explicitly, you need to set others the way you wish, because WiX defaults might not work for you. </p>  <p>The wix.chm states that “<a href="http://wix.sourceforge.net/manual-wix3/iis_xsd_webdirproperties.htm">When setting this (AnonymousAccess) to &#8216;yes&#8217; you should also provide the user account using the AnonymousUser attribute, and determine what setting to use for the IIsControlledPassword attribute.</a>” But it turns out you are not forced to provide the AnonymousUser attribute and I suppose you never wanted to – you should provide a password as well, but who knows the password of IUSR on a target machine?</p>  <p>Instead, just omit the <em>AnonymousUser</em> attribute and this part of IIS metabase will stay untouched. The username/password will inherit from higher node (again, w3svc). And yes, don’t forget <em>IIsControlledPassword</em>=”yes”.</p>  <p>Hope this helps you tuning the website during the installation.</p>  </div>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[A warning to VB.NET developers]]></title>
-    <link href="http://yansklyarenko.github.io/blog/2009/08/16/warning-to-vbnet-developers/"/>
-    <updated>2009-08-16T23:43:00+03:00</updated>
-    <id>http://yansklyarenko.github.io/blog/2009/08/16/warning-to-vbnet-developers</id>
-    <content type="html"><![CDATA[<div class='post'>
-<p>Avoid defining methods with default arguments!</p>  <p>Today I have been exploring the “Member design” chapter of a great book of <a href="http://blogs.msdn.com/kcwalina/">Cwalina</a>/<a href="http://blogs.msdn.com/brada/">Abrams</a> “<a href="http://www.amazon.com/Framework-Design-Guidelines-Conventions-Development/dp/0321545613/ref=dp_ob_title_bk">Framework Design Guidelines</a>”, and found a guideline which shocked me a bit. No, the guideline itself is correct and valuable. I just was never thinking it works like this.</p>  <p>VB.NET has a language feature called default arguments. When you define a method in your class, you can specify default values to the optional parameters to be taken when this parameter is omitted. As far as I understand, this is a kind of alternative to the method overloading. </p>  <p>Consider the following code:</p>  <p><font color="#0000ff">Public Class DefaultValues      <br />&#160;&#160;&#160; Public Function Sum(ByVal a As Integer, Optional ByVal b As Integer =</font> <strong><font color="#ff0000">100</font></strong><font color="#0000ff">)      <br />&#160;&#160;&#160;&#160;&#160;&#160;&#160; Sum = a + b       <br />&#160;&#160;&#160; End Function       <br />&#160; End Class</font></p>  <p>(I speak C# myself, so excuse me my poor VB ;-))</p>  <p>Let’s say we compile this code into a DLL and we have a client console application to utilize that library:</p>  <p><font color="#0000ff">Module TestDefaultValues      <br />&#160;&#160;&#160; Sub Main()       <br />&#160;&#160;&#160;&#160;&#160;&#160;&#160; Dim df As DefaultValues.DefaultValues = New DefaultValues.DefaultValues()       <br />&#160;&#160;&#160;&#160;&#160;&#160;&#160; Console.WriteLine(df.Sum(<strong><font color="#ff0000">55</font></strong>))       <br />&#160;&#160;&#160; End Sub       <br />&#160; End Module</font></p>  <p>Compile everything and run TestDefaultValues.exe. The result is predictable: <strong><font color="#ff0000">155</font></strong>.</p>  <p>Now change the default value from 100 to 200 and compile only the library. DO NOT recompile the client application. Run it again, and it is still <strong><font color="#ff0000">155</font></strong>!</p>  <p>This is why it is strongly not recommended to use default arguments instead of normal method overloading. And this issue is why C# doesn’t expose this technique. </p>  <p>Be careful, VB.NET developers! And long live C#! :-)</p>  </div>
 ]]></content>
   </entry>
   

@@ -9,7 +9,7 @@
   <meta name="author" content="Yan Sklyarenko">
 
   
-  <meta name="description" content="It’s not a secret that XSLT supports blocks of code, written in another language, to be used inside the stylesheet. It seems to have been there &hellip;">
+  <meta name="description" content="Avoid defining methods with default arguments! Today I have been exploring the “Member design” chapter of a great book of Cwalina/Abrams “ &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,43 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2009/08/16/warning-to-vbnet-developers/">A Warning to VB.NET Developers</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2009-08-16T23:43:00+03:00" pubdate data-updated="true">Aug 16<span>th</span>, 2009</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><div class='post'>
+<p>Avoid defining methods with default arguments!</p>  <p>Today I have been exploring the “Member design” chapter of a great book of <a href="http://blogs.msdn.com/kcwalina/">Cwalina</a>/<a href="http://blogs.msdn.com/brada/">Abrams</a> “<a href="http://www.amazon.com/Framework-Design-Guidelines-Conventions-Development/dp/0321545613/ref=dp_ob_title_bk">Framework Design Guidelines</a>”, and found a guideline which shocked me a bit. No, the guideline itself is correct and valuable. I just was never thinking it works like this.</p>  <p>VB.NET has a language feature called default arguments. When you define a method in your class, you can specify default values to the optional parameters to be taken when this parameter is omitted. As far as I understand, this is a kind of alternative to the method overloading. </p>  <p>Consider the following code:</p>  <p><font color="#0000ff">Public Class DefaultValues      <br />&#160;&#160;&#160; Public Function Sum(ByVal a As Integer, Optional ByVal b As Integer =</font> <strong><font color="#ff0000">100</font></strong><font color="#0000ff">)      <br />&#160;&#160;&#160;&#160;&#160;&#160;&#160; Sum = a + b       <br />&#160;&#160;&#160; End Function       <br />&#160; End Class</font></p>  <p>(I speak C# myself, so excuse me my poor VB ;-))</p>  <p>Let’s say we compile this code into a DLL and we have a client console application to utilize that library:</p>  <p><font color="#0000ff">Module TestDefaultValues      <br />&#160;&#160;&#160; Sub Main()       <br />&#160;&#160;&#160;&#160;&#160;&#160;&#160; Dim df As DefaultValues.DefaultValues = New DefaultValues.DefaultValues()       <br />&#160;&#160;&#160;&#160;&#160;&#160;&#160; Console.WriteLine(df.Sum(<strong><font color="#ff0000">55</font></strong>))       <br />&#160;&#160;&#160; End Sub       <br />&#160; End Module</font></p>  <p>Compile everything and run TestDefaultValues.exe. The result is predictable: <strong><font color="#ff0000">155</font></strong>.</p>  <p>Now change the default value from 100 to 200 and compile only the library. DO NOT recompile the client application. Run it again, and it is still <strong><font color="#ff0000">155</font></strong>!</p>  <p>This is why it is strongly not recommended to use default arguments instead of normal method overloading. And this issue is why C# doesn’t expose this technique. </p>  <p>Be careful, VB.NET developers! And long live C#! :-)</p>  </div>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -340,6 +377,10 @@ Well, this is the first message to my first weblog, and it should be outstanding
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2017/11/06/vsts-and-teamcity-commit-status-publisher/">VSTS and Teamcity Commit Status Publisher</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/08/27/err-connection-refused/">ERR_CONNECTION_REFUSED</a>
       </li>
     
@@ -355,10 +396,6 @@ Well, this is the first message to my first weblog, and it should be outstanding
         <a href="/blog/2014/07/31/migrate-attachments-from-ontime-to-tfs/">Migrate attachments from OnTime to TFS</a>
       </li>
     
-      <li class="post">
-        <a href="/blog/2013/01/03/nant-task-behaves-differently-in-092/">NAnt <copy> task behaves differently in 0.92 and prior versions</a>
-      </li>
-    
   </ul>
 </section>
 
@@ -372,7 +409,7 @@ Well, this is the first message to my first weblog, and it should be outstanding
     </div>
   </div>
   <footer role="contentinfo"><p>
-  Copyright &copy; 2015 - Yan Sklyarenko -
+  Copyright &copy; 2017 - Yan Sklyarenko -
   <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
 </p>
 
