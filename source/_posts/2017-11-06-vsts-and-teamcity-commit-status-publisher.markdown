@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "VSTS and Teamcity Commit Status Publisher"
+title: "VSTS and TeamCity Commit Status Publisher"
 date: 2017-11-06 22:24
 comments: true
 categories: 
