@@ -20,7 +20,7 @@ So, the idea is to have a PowerShell script which will iterate over the cards in
 
 ## Prerequisites: app key and authorization
 
-First of all, you should acquire the app key - the entity required for all subsequent operations. Simple head over to https://trello.com/app-key to get this API key. Let's put it into the variable.
+First of all, you should acquire the app key - the entity required for all subsequent operations. Simply head over to https://trello.com/app-key to get this API key. Let's put it into the variable.
 
 ```powershell
 $apiKey = "LongSequenceOfCharsWhichIsBasicallyAnApiKey"
