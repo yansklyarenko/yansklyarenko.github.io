@@ -4,7 +4,7 @@
   <title><![CDATA[.NET, Sitecore and setup development]]></title>
   <link href="http://yansklyarenko.github.io/atom.xml" rel="self"/>
   <link href="http://yansklyarenko.github.io/"/>
-  <updated>2017-11-07T00:46:58+02:00</updated>
+  <updated>2018-02-20T23:13:24+02:00</updated>
   <id>http://yansklyarenko.github.io/</id>
   <author>
     <name><![CDATA[Yan Sklyarenko]]></name>
@@ -12,6 +12,263 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Transform Trello list into Markdown file]]></title>
+    <link href="http://yansklyarenko.github.io/blog/2018/02/20/transform-trello-list-into-markdown-file/"/>
+    <updated>2018-02-20T21:38:00+02:00</updated>
+    <id>http://yansklyarenko.github.io/blog/2018/02/20/transform-trello-list-into-markdown-file</id>
+    <content type="html"><![CDATA[<p>I really enjoy reading. And I think I read a lot. I&rsquo;m sure there are people who read much more, but&hellip; well, that&rsquo;s not what I was going to tell you.</p>
+
+<p>One day I realized that some book recommendations I come across got lost in my memory, so I started a special <a href="https://trello.com">Trello</a> board. Basically, when I get a book recommendation from a person I respect, I add a new card to the initial <em>To Read</em> list of that board. When a certain book is read, I write a short review into the Description of the appropriate card and move it to final <em>Done</em> list.</p>
+
+<p><img src="http://yansklyarenko.github.io/images/february2018/trello_reading_board.png"></p>
+
+<p>Thus, the <em>Done</em> list gets populated with (quite subjective) book reviews. I thought it might be a good idea to post those reviews as a separate article. One day.</p>
+
+<p>As long as compiling long lists out of dozens small snippets is a boring task, it turns out to be a good occasion to play with the Trello API.</p>
+
+<p>So, the idea is to have a PowerShell script which will iterate over the cards in the list and generate a nice Markdown file.</p>
+
+<h2>Prerequisites: app key and authorization</h2>
+
+<p>First of all, you should acquire the app key &ndash; the entity required for all subsequent operations. Simple head over to <a href="https://trello.com/app-key">https://trello.com/app-key</a> to get this API key. Let&rsquo;s put it into the variable.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='powershell'><span class='line'><span class="nv">$apiKey</span> <span class="p">=</span> <span class="s2">&quot;LongSequenceOfCharsWhichIsBasicallyAnApiKey&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Real-world applications will need to ask each user to authorize the application, but as long as we are just playing with it locally, let&rsquo;s manually generate a token. Open this URL in your browser:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='powershell'><span class='line'><span class="n">https</span><span class="err">:</span><span class="p">//</span><span class="n">trello</span><span class="p">.</span><span class="n">com</span><span class="p">/</span><span class="n">1</span><span class="p">/</span><span class="n">authorize</span><span class="k">?</span><span class="n">expiration</span><span class="p">=</span><span class="n">never</span><span class="p">&amp;</span><span class="n">scope</span><span class="p">=</span><span class="n">read</span><span class="p">&amp;</span><span class="n">response_type</span><span class="p">=</span><span class="n">token</span><span class="p">&amp;</span><span class="n">name</span><span class="p">=</span><span class="n">Server</span><span class="k">%</span><span class="n">20Token</span><span class="p">&amp;</span><span class="n">key</span><span class="p">=&lt;</span><span class="n">PASTE_ABOVE_KEY_HERE</span><span class="p">&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Note that we specify the expiration term (never) and the token scope (read only) here. Copy the token when it appears on the page and save into another variable.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='powershell'><span class='line'><span class="nv">$token</span> <span class="p">=</span> <span class="s2">&quot;EvenLongerSequenceOfCharsWhichIsGuessWhatRightTheToken&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We&rsquo;ll need both values for any REST API request, so let&rsquo;s make our life easier:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='powershell'><span class='line'><span class="nv">$authSuffix</span> <span class="p">=</span> <span class="s2">&quot;key=$apiKey&amp;token=$token&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>Get the Board ID to work with</h2>
+
+<p>Okay, the preparations are over, and it&rsquo;s time to get the ID of the board we&rsquo;ll work with.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='powershell'><span class='line'><span class="nv">$response</span> <span class="p">=</span> <span class="nb">Invoke-RestMethod</span> <span class="n">-Uri</span> <span class="s2">&quot;https://api.trello.com/1/members/me?boards=open&amp;board_fields=name&amp;$authSuffix&quot;</span> <span class="n">-Method</span> <span class="n">Get</span>
+</span><span class='line'><span class="nv">$boardId</span> <span class="p">=</span> <span class="nv">$response</span><span class="p">.</span><span class="n">Boards</span> <span class="p">|</span> <span class="n">where</span> <span class="n">name</span> <span class="o">-EQ</span> <span class="s2">&quot;Reading&quot;</span> <span class="p">|</span> <span class="n">select</span> <span class="n">-ExpandProperty</span> <span class="n">id</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The URL instructs the API to get all my open boards, which is then piped through <em>where</em> filter to get the one called &ldquo;Reading&rdquo;.</p>
+
+<h2>Get the Labels used on the Board</h2>
+
+<p>When I finish a book, I mark it with one of the following labels:</p>
+
+<ul>
+<li>Green:    Recommended</li>
+<li>Blue:     Indifferent</li>
+<li>Yellow:   OK for one-time reading</li>
+<li>Red:      Waste of time</li>
+</ul>
+
+
+<p>We&rsquo;ll format the subheaders of each book review depending on the label it has. For instance, recommended books will be highlighted in <strong>bold</strong>, while clearly not recommended will be <del>struck though</del>. Let&rsquo;s get the list of those labels:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='powershell'><span class='line'><span class="nv">$response</span> <span class="p">=</span> <span class="nb">Invoke-RestMethod</span> <span class="n">-Uri</span> <span class="s2">&quot;https://api.trello.com/1/boards/</span><span class="si">$(</span><span class="err">$</span><span class="si">boardId)</span><span class="s2">?labels=all&amp;label_fields=color&amp;$authSuffix&quot;</span> <span class="n">-Method</span> <span class="n">Get</span>
+</span><span class='line'><span class="nv">$labels</span> <span class="p">=</span> <span class="nv">$response</span><span class="p">.</span><span class="n">Labels</span> <span class="p">|</span> <span class="nb">Convert-ArrayToHashTable</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>As a result, we have a hashtable &ndash; <em>LabelId : LabelColor</em>.</p>
+
+<h2>Get the  List ID containing the Cards</h2>
+
+<p>Trello cards live inside the lists, so let&rsquo;s get the <em>Done</em> list. As long as I know that the necessary list is the last one, it&rsquo;s a bit easier scripted:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='powershell'><span class='line'><span class="nv">$response</span> <span class="p">=</span> <span class="nb">Invoke-RestMethod</span> <span class="n">-Uri</span> <span class="s2">&quot;https://api.trello.com/1/boards/</span><span class="si">$(</span><span class="err">$</span><span class="si">boardId)</span><span class="s2">?lists=open&amp;list_fields=id,name&amp;$authSuffix&quot;</span> <span class="n">-Method</span> <span class="n">Get</span>
+</span><span class='line'><span class="nv">$listId</span> <span class="p">=</span> <span class="nv">$response</span><span class="p">.</span><span class="n">Lists</span> <span class="p">|</span> <span class="n">select</span> <span class="n">-Last</span> <span class="n">1</span> <span class="n">-ExpandProperty</span> <span class="n">id</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>Get the Cards from the List</h2>
+
+<p>Now, when we have the list ID, we are just one call away from getting the collection of cards. Note that we only get necessary fields &ndash; in this case <strong>Title</strong> (subheader), <strong>Label</strong> (subheader formatting) and <strong>Description</strong> (actual text of the review).</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='powershell'><span class='line'><span class="nv">$response</span> <span class="p">=</span> <span class="nb">Invoke-RestMethod</span> <span class="n">-Uri</span> <span class="s2">&quot;https://api.trello.com/1/lists/</span><span class="si">$(</span><span class="err">$</span><span class="si">listId)</span><span class="s2">?cards=all&amp;card_fields=name,desc,idLabels&amp;$authSuffix&quot;</span> <span class="n">-Method</span> <span class="n">Get</span>
+</span><span class='line'><span class="nv">$cards</span> <span class="p">=</span> <span class="nv">$response</span><span class="p">.</span><span class="n">Cards</span> <span class="p">|</span> <span class="n">select</span> <span class="err">@</span><span class="p">{</span><span class="n">Name</span><span class="p">=</span><span class="s2">&quot;Title&quot;</span><span class="err">;</span>       <span class="n">Expression</span><span class="p">={</span><span class="nv">$_</span><span class="p">.</span><span class="n">name</span><span class="p">}},</span>
+</span><span class='line'>                                  <span class="err">@</span><span class="p">{</span><span class="n">Name</span><span class="p">=</span><span class="s2">&quot;Label&quot;</span><span class="err">;</span>       <span class="n">Expression</span><span class="p">={</span><span class="nv">$labels</span><span class="p">[</span><span class="nv">$_</span><span class="p">.</span><span class="n">idLabels</span><span class="p">[</span><span class="n">0</span><span class="p">]]}},</span>
+</span><span class='line'>                                  <span class="err">@</span><span class="p">{</span><span class="n">Name</span><span class="p">=</span><span class="s2">&quot;Description&quot;</span><span class="err">;</span> <span class="n">Expression</span><span class="p">={</span><span class="nv">$_</span><span class="p">.</span><span class="n">desc</span><span class="p">}}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>And a bit of formatting magic for dessert</h2>
+
+<p>Finally, the collection of cards is transformed to become a nicely formatted Markdown document:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='powershell'><span class='line'><span class="nb">Convert-TableToMarkdown</span> <span class="nv">$cards</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Run the script, and you&rsquo;ll get a markdown document, similar to this one:</p>
+
+<p><img src="http://yansklyarenko.github.io/images/february2018/result_markdown.png"></p>
+
+<h2>The full listing of the PowerShell script</h2>
+
+<p>Here is the script I ended up with, including some under-the-hood formatting magic:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+</pre></td><td class='code'><pre><code class='powershell'><span class='line'><span class="k">Function</span> <span class="nb">Convert-ArrayToHashTable</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="k">begin</span> <span class="p">{</span> <span class="nv">$hash</span> <span class="p">=</span> <span class="err">@</span><span class="p">{}</span> <span class="p">}</span>
+</span><span class='line'>    <span class="k">process</span> <span class="p">{</span> <span class="nv">$hash</span><span class="p">[</span><span class="nv">$_</span><span class="p">.</span><span class="n">id</span><span class="p">]</span> <span class="p">=</span> <span class="nv">$_</span><span class="p">.</span><span class="n">color</span> <span class="p">}</span>
+</span><span class='line'>    <span class="k">end</span> <span class="p">{</span> <span class="k">return</span> <span class="nv">$hash</span> <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">function</span> <span class="nb">Get-WrapperByLabel</span>
+</span><span class='line'><span class="p">(</span>
+</span><span class='line'>  <span class="p">[</span><span class="k">Parameter</span><span class="p">(</span><span class="k">Mandatory</span><span class="p">=</span><span class="nv">$true</span><span class="p">)]</span> <span class="nv">$label</span>
+</span><span class='line'><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="k">switch</span> <span class="p">(</span><span class="nv">$label</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>      <span class="s2">&quot;red&quot;</span>    <span class="p">{</span> <span class="s2">&quot;~~&quot;</span> <span class="p">}</span>
+</span><span class='line'>      <span class="s2">&quot;green&quot;</span>  <span class="p">{</span> <span class="s2">&quot;**&quot;</span> <span class="p">}</span>
+</span><span class='line'>      <span class="s2">&quot;blue&quot;</span>   <span class="p">{</span> <span class="s2">&quot;*&quot;</span> <span class="p">}</span>
+</span><span class='line'>      <span class="k">Default</span> <span class="p">{</span> <span class="s2">&quot;&quot;</span> <span class="p">}</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">Function</span> <span class="nb">Convert-TableToMarkdown</span>
+</span><span class='line'><span class="p">(</span>
+</span><span class='line'>  <span class="p">[</span><span class="k">Parameter</span><span class="p">(</span><span class="k">Mandatory</span><span class="p">=</span><span class="nv">$true</span><span class="p">)]</span> <span class="nv">$books</span>
+</span><span class='line'><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="nv">$filePath</span> <span class="p">=</span> <span class="s2">&quot;$PSScriptRoot\result.md&quot;</span>
+</span><span class='line'>  <span class="k">foreach</span> <span class="p">(</span><span class="nv">$book</span> <span class="k">in</span> <span class="nv">$books</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nv">$wrapper</span> <span class="p">=</span> <span class="nb">Get-WrapperByLabel</span> <span class="nv">$book</span><span class="p">.</span><span class="n">Label</span>
+</span><span class='line'>    <span class="s2">&quot;## $wrapper</span><span class="si">$(</span><span class="err">$</span><span class="si">book.Title)</span><span class="s2">$wrapper&quot;</span> <span class="p">|</span> <span class="nb">Out-File</span> <span class="n">-FilePath</span> <span class="nv">$filePath</span> <span class="n">-Encoding</span> <span class="n">unicode</span> <span class="n">-Append</span>
+</span><span class='line'>    <span class="s2">&quot;&quot;</span> <span class="p">|</span> <span class="nb">Out-File</span> <span class="n">-FilePath</span> <span class="nv">$filePath</span> <span class="n">-Encoding</span> <span class="n">unicode</span> <span class="n">-Append</span>
+</span><span class='line'>    <span class="s2">&quot;</span><span class="si">$(</span><span class="err">$</span><span class="si">book.Description)</span><span class="s2">&quot;</span> <span class="p">|</span> <span class="nb">Out-File</span> <span class="n">-FilePath</span> <span class="nv">$filePath</span> <span class="n">-Encoding</span> <span class="n">unicode</span> <span class="n">-Append</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="c"># Head over to https://trello.com/app-key to get this API key</span>
+</span><span class='line'><span class="nv">$apiKey</span> <span class="p">=</span> <span class="s2">&quot;LongSequenceOfCharsWhichIsBasicallyAnApiKey&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c"># Use this shortcut for local test code: https://trello.com/1/authorize?expiration=never&amp;scope=read&amp;response_type=token&amp;name=Server%20Token&amp;key=&lt;PASTE_ABOVE_KEY_HERE&gt;</span>
+</span><span class='line'><span class="nv">$token</span> <span class="p">=</span> <span class="s2">&quot;EvenLongerSequenceOfCharsWhichIsGuessWhatRightTheToken&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c"># shape the authentication suffix to append to each URI in REST calls</span>
+</span><span class='line'><span class="nv">$authSuffix</span> <span class="p">=</span> <span class="s2">&quot;key=$apiKey&amp;token=$token&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c"># get the ID of the target board</span>
+</span><span class='line'><span class="nv">$response</span> <span class="p">=</span> <span class="nb">Invoke-RestMethod</span> <span class="n">-Uri</span> <span class="s2">&quot;https://api.trello.com/1/members/me?boards=open&amp;board_fields=name&amp;$authSuffix&quot;</span> <span class="n">-Method</span> <span class="n">Get</span>
+</span><span class='line'><span class="nv">$boardId</span> <span class="p">=</span> <span class="nv">$response</span><span class="p">.</span><span class="n">Boards</span> <span class="p">|</span> <span class="n">where</span> <span class="n">name</span> <span class="o">-EQ</span> <span class="s2">&quot;Reading&quot;</span> <span class="p">|</span> <span class="n">select</span> <span class="n">-ExpandProperty</span> <span class="n">id</span>
+</span><span class='line'>
+</span><span class='line'><span class="c"># get the labels used on the board</span>
+</span><span class='line'><span class="nv">$response</span> <span class="p">=</span> <span class="nb">Invoke-RestMethod</span> <span class="n">-Uri</span> <span class="s2">&quot;https://api.trello.com/1/boards/</span><span class="si">$(</span><span class="err">$</span><span class="si">boardId)</span><span class="s2">?labels=all&amp;label_fields=color&amp;$authSuffix&quot;</span> <span class="n">-Method</span> <span class="n">Get</span>
+</span><span class='line'><span class="nv">$labels</span> <span class="p">=</span> <span class="nv">$response</span><span class="p">.</span><span class="n">Labels</span> <span class="p">|</span> <span class="nb">Convert-ArrayToHashTable</span>
+</span><span class='line'>
+</span><span class='line'><span class="c"># get the last list (which contains the items I&#39;m done reading)</span>
+</span><span class='line'><span class="nv">$response</span> <span class="p">=</span> <span class="nb">Invoke-RestMethod</span> <span class="n">-Uri</span> <span class="s2">&quot;https://api.trello.com/1/boards/</span><span class="si">$(</span><span class="err">$</span><span class="si">boardId)</span><span class="s2">?lists=open&amp;list_fields=id,name&amp;$authSuffix&quot;</span> <span class="n">-Method</span> <span class="n">Get</span>
+</span><span class='line'><span class="nv">$listId</span> <span class="p">=</span> <span class="nv">$response</span><span class="p">.</span><span class="n">Lists</span> <span class="p">|</span> <span class="n">select</span> <span class="n">-Last</span> <span class="n">1</span> <span class="n">-ExpandProperty</span> <span class="n">id</span>
+</span><span class='line'>
+</span><span class='line'><span class="c"># get the list of cards (necessary fields only)</span>
+</span><span class='line'><span class="nv">$response</span> <span class="p">=</span> <span class="nb">Invoke-RestMethod</span> <span class="n">-Uri</span> <span class="s2">&quot;https://api.trello.com/1/lists/</span><span class="si">$(</span><span class="err">$</span><span class="si">listId)</span><span class="s2">?cards=all&amp;card_fields=name,desc,idLabels&amp;$authSuffix&quot;</span> <span class="n">-Method</span> <span class="n">Get</span>
+</span><span class='line'><span class="nv">$cards</span> <span class="p">=</span> <span class="nv">$response</span><span class="p">.</span><span class="n">Cards</span> <span class="p">|</span> <span class="n">select</span> <span class="err">@</span><span class="p">{</span><span class="n">Name</span><span class="p">=</span><span class="s2">&quot;Title&quot;</span><span class="err">;</span>       <span class="n">Expression</span><span class="p">={</span><span class="nv">$_</span><span class="p">.</span><span class="n">name</span><span class="p">}},</span>
+</span><span class='line'>                                  <span class="err">@</span><span class="p">{</span><span class="n">Name</span><span class="p">=</span><span class="s2">&quot;Label&quot;</span><span class="err">;</span>       <span class="n">Expression</span><span class="p">={</span><span class="nv">$labels</span><span class="p">[</span><span class="nv">$_</span><span class="p">.</span><span class="n">idLabels</span><span class="p">[</span><span class="n">0</span><span class="p">]]}},</span>
+</span><span class='line'>                                  <span class="err">@</span><span class="p">{</span><span class="n">Name</span><span class="p">=</span><span class="s2">&quot;Description&quot;</span><span class="err">;</span> <span class="n">Expression</span><span class="p">={</span><span class="nv">$_</span><span class="p">.</span><span class="n">desc</span><span class="p">}}</span>
+</span><span class='line'>
+</span><span class='line'><span class="nb">Convert-TableToMarkdown</span> <span class="nv">$cards</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>P.S. The <a href="https://trello.com">Trello</a> REST API is clear, concise and well-documented <a href="https://developers.trello.com/reference">here</a>. Great job!</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[VSTS and TeamCity Commit Status Publisher]]></title>
@@ -440,16 +697,6 @@ bundle install
     <id>http://yansklyarenko.github.io/blog/2009/09/17/going-to-agileee-2009</id>
     <content type="html"><![CDATA[<div class='post'>
 <p>Today I’m heading to the <a href="http://agileee.org/">Agileee 2009 conference</a> being held in Kiev on September, 18 – 19th. This is rather new field to me – I’ve never been practicing Agile or Scrum before. We’ll see how it goes. At least, I’m expecting to learn many new and interesting things and see how to apply this in the Modules team.</p>  </div>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[WebDirProperties: AnonymousUser attribute is not obligatory]]></title>
-    <link href="http://yansklyarenko.github.io/blog/2009/08/18/webdirproperties-anonymoususer/"/>
-    <updated>2009-08-18T23:46:00+03:00</updated>
-    <id>http://yansklyarenko.github.io/blog/2009/08/18/webdirproperties-anonymoususer</id>
-    <content type="html"><![CDATA[<div class='post'>
-<p>When you specify a <em>WebDirProperties</em> element to be used by the sites you install (configure) with WiX, you might also want to allow anonymous access to this site. Fortunately, there’s an attribute <em>AnonymousAccess</em>, which being set to ‘yes’ allows anonymous access to IIS web site.</p>  <p>NOTE: If you don’t address any property of “authorization” group (<em>AnonymousAccess, BasicAuthentication, DigestAuthentication, PassportAuthentication</em> or <em>WindowsAuthentication</em>) in your <em>WebDirProperties</em>, the site inherits those from w3svc root. If you set at least one explicitly, you need to set others the way you wish, because WiX defaults might not work for you. </p>  <p>The wix.chm states that “<a href="http://wix.sourceforge.net/manual-wix3/iis_xsd_webdirproperties.htm">When setting this (AnonymousAccess) to &#8216;yes&#8217; you should also provide the user account using the AnonymousUser attribute, and determine what setting to use for the IIsControlledPassword attribute.</a>” But it turns out you are not forced to provide the AnonymousUser attribute and I suppose you never wanted to – you should provide a password as well, but who knows the password of IUSR on a target machine?</p>  <p>Instead, just omit the <em>AnonymousUser</em> attribute and this part of IIS metabase will stay untouched. The username/password will inherit from higher node (again, w3svc). And yes, don’t forget <em>IIsControlledPassword</em>=”yes”.</p>  <p>Hope this helps you tuning the website during the installation.</p>  </div>
 ]]></content>
   </entry>
   

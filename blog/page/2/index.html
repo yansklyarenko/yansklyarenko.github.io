@@ -9,7 +9,7 @@
   <meta name="author" content="Yan Sklyarenko">
 
   
-  <meta name="description" content="This topic might seem too minor for a blog post. You can argue that it’s covered by a simple call to a dir /s command. Well, that’s true unless &hellip;">
+  <meta name="description" content="Some time ago I wrote my first T4 template which generates a solution (*.sln) file out of a number of C# project (*.cspoj) files, located in a &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,43 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/07/06/generate-solution-file-for-number-of-c/">Generate a Solution File for a Number of C# Projects Files in a Folder</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-07-06T14:59:00+03:00" pubdate data-updated="true">Jul 6<span>th</span>, 2012</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><div class='post'>
+<div dir="ltr" style="text-align: left;" trbidi="on">Some time ago I wrote my first T4 template which generates a solution (*.sln) file out of a number of C# project (*.cspoj) files, located in a folder and all descendants. Although it turned out not to be necessary to solve the task I was working on, and assuming it’s quite simple, I still decided to share it for further reference. May someone can find it useful. So, below is the entire T4 template, with no extra comments:<br /><div class="wlWriterEditableSmartContent" id="scid:f32c3428-b7e9-4f15-a8ea-c502c7ff2e88:260cba0a-462d-4da5-bf82-2a4da7bd7cdf" style="display: inline; float: none; margin: 0px; padding-bottom: 0px; padding-left: 0px; padding-right: 0px; padding-top: 0px;"><pre class="brush: c#;gutter:false;wrap-lines:false;">Microsoft Visual Studio Solution File, Format Version 11.00<br /># Visual Studio 2010<br />&lt;#@ template language="cs" hostspecific="false" #&gt;<br />&lt;#@ output extension=".sln" #&gt;<br />&lt;#@ parameter name="Folder" type="System.String" #&gt; <br />&lt;#@ assembly name="System.Core" #&gt;<br />&lt;#@ assembly name="System.Xml" #&gt;<br />&lt;#@ assembly name="System.Xml.Linq" #&gt;<br />&lt;#@ import namespace="System.IO" #&gt;<br />&lt;#@ import namespace="System.Linq" #&gt;<br />&lt;#@ import namespace="System.Xml.Linq" #&gt; <br />&lt;#<br />    if (Directory.Exists(Folder))<br />    {<br />        var csprojFiles= Directory.GetFiles(Folder, "*.csproj", SearchOption.AllDirectories);<br />        foreach (var file in csprojFiles)<br />        {<br />            ProjectFileMetaData metaData = new ProjectFileMetaData(file, Folder);<br />            WriteLine("Project(\"{3}\") = \"{0}\", \"{1}\", \"{2}\"",  metaData.Name, metaData.Path, metaData.Id, ProjectFileMetaData.ProjectTypeGuid);<br />            WriteLine("EndProject");<br />        }<br />    }<br />#&gt;<br /><br />&lt;#+ <br />    public class ProjectFileMetaData<br />    {<br />        public static string ProjectTypeGuid = "{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}";<br /><br />        public ProjectFileMetaData(string file, string root)<br />        {<br />            InitProperties(file, root);<br />        }<br /><br />        public string Name { get; set; }<br /><br />        public string Path { get; set; }<br /><br />        public string Id { get; set; }<br /><br />        private void InitProperties(string file, string root)<br />        {<br />            XDocument xDoc = XDocument.Load(file);<br />            XNamespace ns = @"http://schemas.microsoft.com/developer/msbuild/2003";<br />            XElement xElement = xDoc.Root.Elements(XName.Get("PropertyGroup", ns.NamespaceName)).First().Element(XName.Get("ProjectGuid", ns.NamespaceName));<br />            if (xElement != null)<br />            {<br />                this.Id = xElement.Value;<br />            }<br /><br />            this.Path = file.Substring(root.Length).TrimStart(new char[] { '\\' });<br /><br />            this.Name = System.IO.Path.GetFileNameWithoutExtension(file);<br />        }<br />    }<br />#&gt;</pre></div></div></div>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -399,43 +436,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2009/08/18/webdirproperties-anonymoususer/">WebDirProperties: AnonymousUser Attribute Is Not Obligatory</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2009-08-18T23:46:00+03:00" pubdate data-updated="true">Aug 18<span>th</span>, 2009</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><div class='post'>
-<p>When you specify a <em>WebDirProperties</em> element to be used by the sites you install (configure) with WiX, you might also want to allow anonymous access to this site. Fortunately, there’s an attribute <em>AnonymousAccess</em>, which being set to ‘yes’ allows anonymous access to IIS web site.</p>  <p>NOTE: If you don’t address any property of “authorization” group (<em>AnonymousAccess, BasicAuthentication, DigestAuthentication, PassportAuthentication</em> or <em>WindowsAuthentication</em>) in your <em>WebDirProperties</em>, the site inherits those from w3svc root. If you set at least one explicitly, you need to set others the way you wish, because WiX defaults might not work for you. </p>  <p>The wix.chm states that “<a href="http://wix.sourceforge.net/manual-wix3/iis_xsd_webdirproperties.htm">When setting this (AnonymousAccess) to &#8216;yes&#8217; you should also provide the user account using the AnonymousUser attribute, and determine what setting to use for the IIsControlledPassword attribute.</a>” But it turns out you are not forced to provide the AnonymousUser attribute and I suppose you never wanted to – you should provide a password as well, but who knows the password of IUSR on a target machine?</p>  <p>Instead, just omit the <em>AnonymousUser</em> attribute and this part of IIS metabase will stay untouched. The username/password will inherit from higher node (again, w3svc). And yes, don’t forget <em>IIsControlledPassword</em>=”yes”.</p>  <p>Hope this helps you tuning the website during the installation.</p>  </div>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/3/">&larr; Older</a>
@@ -453,6 +453,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2018/02/20/transform-trello-list-into-markdown-file/">Transform Trello list into Markdown file</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2017/11/06/vsts-and-teamcity-commit-status-publisher/">VSTS and TeamCity Commit Status Publisher</a>
       </li>
     
@@ -468,10 +472,6 @@
         <a href="/blog/2014/08/01/setting-up-an-existing-blog-on-octopress/">Setting up an existing blog on Octopress</a>
       </li>
     
-      <li class="post">
-        <a href="/blog/2014/07/31/migrate-attachments-from-ontime-to-tfs/">Migrate attachments from OnTime to TFS</a>
-      </li>
-    
   </ul>
 </section>
 
@@ -485,7 +485,7 @@
     </div>
   </div>
   <footer role="contentinfo"><p>
-  Copyright &copy; 2017 - Yan Sklyarenko -
+  Copyright &copy; 2018 - Yan Sklyarenko -
   <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
 </p>
 

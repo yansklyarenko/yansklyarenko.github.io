@@ -9,7 +9,7 @@
   <meta name="author" content="Yan Sklyarenko">
 
   
-  <meta name="description" content="Avoid defining methods with default arguments! Today I have been exploring the “Member design” chapter of a great book of Cwalina/Abrams “ &hellip;">
+  <meta name="description" content="When you specify a WebDirProperties element to be used by the sites you install (configure) with WiX, you might also want to allow anonymous access &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,43 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2009/08/18/webdirproperties-anonymoususer/">WebDirProperties: AnonymousUser Attribute Is Not Obligatory</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2009-08-18T23:46:00+03:00" pubdate data-updated="true">Aug 18<span>th</span>, 2009</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><div class='post'>
+<p>When you specify a <em>WebDirProperties</em> element to be used by the sites you install (configure) with WiX, you might also want to allow anonymous access to this site. Fortunately, there’s an attribute <em>AnonymousAccess</em>, which being set to ‘yes’ allows anonymous access to IIS web site.</p>  <p>NOTE: If you don’t address any property of “authorization” group (<em>AnonymousAccess, BasicAuthentication, DigestAuthentication, PassportAuthentication</em> or <em>WindowsAuthentication</em>) in your <em>WebDirProperties</em>, the site inherits those from w3svc root. If you set at least one explicitly, you need to set others the way you wish, because WiX defaults might not work for you. </p>  <p>The wix.chm states that “<a href="http://wix.sourceforge.net/manual-wix3/iis_xsd_webdirproperties.htm">When setting this (AnonymousAccess) to &#8216;yes&#8217; you should also provide the user account using the AnonymousUser attribute, and determine what setting to use for the IIsControlledPassword attribute.</a>” But it turns out you are not forced to provide the AnonymousUser attribute and I suppose you never wanted to – you should provide a password as well, but who knows the password of IUSR on a target machine?</p>  <p>Instead, just omit the <em>AnonymousUser</em> attribute and this part of IIS metabase will stay untouched. The username/password will inherit from higher node (again, w3svc). And yes, don’t forget <em>IIsControlledPassword</em>=”yes”.</p>  <p>Hope this helps you tuning the website during the installation.</p>  </div>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -377,6 +414,10 @@ Well, this is the first message to my first weblog, and it should be outstanding
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2018/02/20/transform-trello-list-into-markdown-file/">Transform Trello list into Markdown file</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2017/11/06/vsts-and-teamcity-commit-status-publisher/">VSTS and TeamCity Commit Status Publisher</a>
       </li>
     
@@ -392,10 +433,6 @@ Well, this is the first message to my first weblog, and it should be outstanding
         <a href="/blog/2014/08/01/setting-up-an-existing-blog-on-octopress/">Setting up an existing blog on Octopress</a>
       </li>
     
-      <li class="post">
-        <a href="/blog/2014/07/31/migrate-attachments-from-ontime-to-tfs/">Migrate attachments from OnTime to TFS</a>
-      </li>
-    
   </ul>
 </section>
 
@@ -409,7 +446,7 @@ Well, this is the first message to my first weblog, and it should be outstanding
     </div>
   </div>
   <footer role="contentinfo"><p>
-  Copyright &copy; 2017 - Yan Sklyarenko -
+  Copyright &copy; 2018 - Yan Sklyarenko -
   <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
 </p>
 
