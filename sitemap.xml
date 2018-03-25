@@ -157,12 +157,18 @@
         <lastmod>2018-02-20T23:25:24+02:00</lastmod>
     </url>
     <url>
+        <loc>
+            http://yansklyarenko.github.io/blog/2018/03/25/use-cognitive-services-in-vsts-custom-branch-policies/
+        </loc>
+        <lastmod>2018-03-25T23:15:11+03:00</lastmod>
+    </url>
+    <url>
         <loc>http://yansklyarenko.github.io/blog/archives/</loc>
-        <lastmod>2018-02-20T23:25:24+02:00</lastmod>
+        <lastmod>2018-03-25T23:15:11+03:00</lastmod>
     </url>
     <url>
         <loc>http://yansklyarenko.github.io/</loc>
-        <lastmod>2018-02-20T23:25:24+02:00</lastmod>
+        <lastmod>2018-03-25T23:15:11+03:00</lastmod>
     </url>
     <url>
         <loc>http://yansklyarenko.github.io/robots.txt</loc>

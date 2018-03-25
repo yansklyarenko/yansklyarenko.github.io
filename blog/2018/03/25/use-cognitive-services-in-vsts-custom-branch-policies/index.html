@@ -1,0 +1,837 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Use cognitive services in VSTS custom branch policies - .NET, Sitecore and setup development</title>
+  <meta name="author" content="Yan Sklyarenko">
+
+  
+  <meta name="description" content="Imagine a situation when an international distributed team works on a project. People speak different languages and often tend to add comments or &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://yansklyarenko.github.io/blog/2018/03/25/use-cognitive-services-in-vsts-custom-branch-policies">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title=".NET, Sitecore and setup development" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+  
+
+</head>
+
+<body   class="collapse-sidebar sidebar-footer" >
+  <header role="banner"><hgroup>
+  <h1><a href="/">.NET, Sitecore and setup development</a></h1>
+  
+    <h2>This blog is used as a memory dump of random thoughts and interesting facts about different things in the world of IT.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:yansklyarenko.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Use Cognitive Services in VSTS Custom Branch Policies</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2018-03-25T10:53:00+03:00" pubdate data-updated="true">Mar 25<span>th</span>, 2018</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>Imagine a situation when an international distributed team works on a project. People speak different languages and often tend to add comments or name things in their native language. What if we can configure a system which analyzes the pull request contents and prevents its completion unless it is in English? Fortunately, it is possible with Microsoft cognitive services API, Azure functions and custom branch policies in VSTS. Let&rsquo;s walk through the process.</p>
+
+<p>There is a detailed article on <a href="https://docs.microsoft.com/en-us/vsts/git/how-to/create-pr-status-server-with-azure-functions">how to use Azure functions to create custom branch policies</a>. I will use it as a starting point.</p>
+
+<p>First of all, let&rsquo;s remove some simplifications, like hard-coded VSTS PAT and later cognitive serivces API key. Those entities can be kept in the Azure key vault as secrets and safely addressed from the Azure function code.</p>
+
+<p>Then, let&rsquo;s replace the primitive sample &ldquo;starts with [WIP]&rdquo; check in that sample above with some more sophisticated verification. I&rsquo;ll use Microsoft cognitive services to detect the language of the pull request title. In case the language confidence is higher than 70% I&rsquo;ll assume the text is in English.</p>
+
+<p>Finally, let&rsquo;s post proper pull request status and configure branching policy out of that status, and see how the full solution works.</p>
+
+<h2>Keep code secrets in the Azure Key Vault service and access those from Azure Function</h2>
+
+<p>There are official docs about <a href="https://docs.microsoft.com/en-us/azure/azure-stack/user/azure-stack-kv-manage-portal">how to get started with the key vault service</a>. We&rsquo;ll need to create 2 secrets: one for VSTS personal access token (PAT) and another one for API key to be used when connecting to cognitive services. The &ldquo;create a secret&rdquo; section under <a href="https://docs.microsoft.com/en-us/azure/azure-stack/user/azure-stack-kv-manage-portal#manage-keys-and-secrets">Manage keys and secrets</a> gives a step-by-step guideline on how to do this. Note that <em>Secret Identifier</em> field &ndash; it is required to get the secret value from inside the Azure function code.</p>
+
+<p><img src="/images/march2018/azure_key_vault_secrets.png"></p>
+
+<p>Now we need to grant our Azure function permissions to read the secrets from the key vault. <a href="https://medium.com/statuscode/getting-key-vault-secrets-in-azure-functions-37620fd20a0b">This great article</a> contains detailed steps on how to achieve this. To tell it short, there are two major points:</p>
+
+<h3>Enable Managed Service Identiry for the Function App</h3>
+
+<p>As far as I understand, it will make the function app appear as an AD identity for Azure and it will be possible to grant permissions specifically to the function as if it is done for a normal user:</p>
+
+<p><img src="/images/march2018/enable_managed_service_identiry.png"></p>
+
+<h3>Add an access policy in the key vault for the Azure function</h3>
+
+<p>This will allow the function app to read the secrets in the key vault. The access policy contains a variaty of permissions, but for this sample only <em>Get</em> and <em>List</em> under <em>Secret Management Operations</em> are required:</p>
+
+<p><img src="/images/march2018/add_access_policy.png"></p>
+
+<h3>Access key vault secrets from the Azure function</h3>
+
+<p>The API required for that reside in the following two NuGet packages, that should be added to the <em>project.json</em> file of the function:</p>
+
+<p><img src="/images/march2018/project_json_keyvault.png"></p>
+
+<p>Then the code itself it quite trivial:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='c#'><span class='line'><span class="k">using</span> <span class="nn">Microsoft.Azure.KeyVault</span><span class="p">;</span>
+</span><span class='line'><span class="k">using</span> <span class="nn">Microsoft.Azure.Services.AppAuthentication</span><span class="p">;</span>
+</span><span class='line'><span class="c1">// ...</span>
+</span><span class='line'>
+</span><span class='line'><span class="kt">var</span> <span class="n">azureServiceTokenProvider</span> <span class="p">=</span> <span class="k">new</span> <span class="n">AzureServiceTokenProvider</span><span class="p">();</span>
+</span><span class='line'><span class="kt">var</span> <span class="n">kvClient</span> <span class="p">=</span> <span class="k">new</span> <span class="n">KeyVaultClient</span><span class="p">(</span><span class="k">new</span> <span class="n">KeyVaultClient</span><span class="p">.</span><span class="n">AuthenticationCallback</span><span class="p">(</span><span class="n">azureServiceTokenProvider</span><span class="p">.</span><span class="n">KeyVaultTokenCallback</span><span class="p">));</span>
+</span><span class='line'><span class="kt">string</span> <span class="n">vstsPAT</span> <span class="p">=</span> <span class="p">(</span><span class="k">await</span> <span class="n">kvClient</span><span class="p">.</span><span class="n">GetSecretAsync</span><span class="p">(</span><span class="s">&quot;https://ysmainkeyvault.vault.azure.net/secrets/vstsPAT/&lt;GUID_HERE&gt;&quot;</span><span class="p">)).</span><span class="n">Value</span><span class="p">;</span>
+</span><span class='line'><span class="kt">string</span> <span class="n">apiKey</span> <span class="p">=</span> <span class="p">(</span><span class="k">await</span> <span class="n">kvClient</span><span class="p">.</span><span class="n">GetSecretAsync</span><span class="p">(</span><span class="s">&quot;https://ysmainkeyvault.vault.azure.net/secrets/CognitiveServicesAPIkey/&lt;GUID_HERE&gt;&quot;</span><span class="p">)).</span><span class="n">Value</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The <em>&lt;GUID_HERE></em> token above should be replaced with the real Secret Identifier of each secret.</p>
+
+<h2>Use Microsoft cognitive services to detect the language of the pull request title</h2>
+
+<p><a href="https://azure.microsoft.com/en-us/services/cognitive-services/">Microsoft cognitive services</a> is a bunch of AI-driven Azure services which can do much more than just text analytics. In this article we&rsquo;ll just touch the surface with language part of it. I can higly recommend the <a href="https://app.pluralsight.com/library/courses/microsoft-cognitive-services-text-analytics-api/table-of-contents">Microsoft Cognitive Services: Text Analytics API</a> course on Pluralsight by <a href="http://twitter.com/MCKRUZ">Matt Kruczek</a> if you want to learn some more. In fact, I&rsquo;ll use slightly modified example from that course in this article.</p>
+
+<p>To begin with, a new resource should be instantiated in Azure: Text Analytics API. It is important to choose West US as a location here, no matter which one is closer to you. For some reason, the C# API we&rsquo;ll work with (from Microsoft.ProjectOxford.Text NuGet package) addresses West US API endpoint. <a href="https://stackoverflow.com/a/47961098/274535">This StackOverflow answer</a> helped to understand the root cause.</p>
+
+<p>Once the resource is created, make sure to get the API key (KEY 1 on the image below) and place it to the key vault:</p>
+
+<p><img src="/images/march2018/text_analytics_keys.png"></p>
+
+<p>As I mentioned above, the Microsoft.ProjectOxford.Text NuGet package is to be used to talk to the language analytics service. Let&rsquo;s add this NuGet package to the <em>project.json</em> of the function, too:</p>
+
+<p><img src="/images/march2018/project_json_oxford.png"></p>
+
+<p>Finally, the code itself is placed in the private method, which is called from the main function each time we need to detect the language of the text:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+</pre></td><td class='code'><pre><code class='c#'><span class='line'><span class="k">private</span> <span class="k">static</span> <span class="kt">int</span> <span class="nf">GetEnglishConfidence</span><span class="p">(</span><span class="kt">string</span> <span class="n">text</span><span class="p">,</span> <span class="kt">string</span> <span class="n">apiKey</span><span class="p">,</span> <span class="n">TraceWriter</span> <span class="n">log</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="kt">var</span> <span class="n">document</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Document</span><span class="p">()</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="n">Id</span> <span class="p">=</span> <span class="n">Guid</span><span class="p">.</span><span class="n">NewGuid</span><span class="p">().</span><span class="n">ToString</span><span class="p">(),</span>
+</span><span class='line'>        <span class="n">Text</span> <span class="p">=</span> <span class="n">text</span><span class="p">,</span>
+</span><span class='line'>    <span class="p">};</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kt">var</span> <span class="n">englishConfidence</span> <span class="p">=</span> <span class="m">0</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kt">var</span> <span class="n">client</span> <span class="p">=</span> <span class="k">new</span> <span class="n">LanguageClient</span><span class="p">(</span><span class="n">apiKey</span><span class="p">);</span>
+</span><span class='line'>    <span class="kt">var</span> <span class="n">request</span> <span class="p">=</span> <span class="k">new</span> <span class="n">LanguageRequest</span><span class="p">();</span>
+</span><span class='line'>    <span class="n">request</span><span class="p">.</span><span class="n">Documents</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">document</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">try</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="kt">var</span> <span class="n">response</span> <span class="p">=</span> <span class="n">client</span><span class="p">.</span><span class="n">GetLanguages</span><span class="p">(</span><span class="n">request</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="kt">var</span> <span class="n">tryEnglish</span> <span class="p">=</span> <span class="n">response</span><span class="p">.</span><span class="n">Documents</span><span class="p">.</span><span class="n">First</span><span class="p">().</span><span class="n">DetectedLanguages</span><span class="p">.</span><span class="n">Where</span><span class="p">(</span><span class="n">l</span> <span class="p">=&gt;</span> <span class="n">l</span><span class="p">.</span><span class="n">Iso639Name</span> <span class="p">==</span> <span class="s">&quot;en&quot;</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">if</span> <span class="p">(</span><span class="n">tryEnglish</span><span class="p">.</span><span class="n">Any</span><span class="p">())</span>
+</span><span class='line'>        <span class="p">{</span>
+</span><span class='line'>            <span class="kt">var</span> <span class="n">english</span> <span class="p">=</span> <span class="n">tryEnglish</span><span class="p">.</span><span class="n">First</span><span class="p">();</span>
+</span><span class='line'>            <span class="n">englishConfidence</span> <span class="p">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span> <span class="p">(</span><span class="n">english</span><span class="p">.</span><span class="n">Score</span> <span class="p">*</span> <span class="m">100</span><span class="p">);</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="k">catch</span> <span class="p">(</span><span class="n">Exception</span> <span class="n">ex</span><span class="p">)</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="n">log</span><span class="p">.</span><span class="n">Info</span><span class="p">(</span><span class="n">ex</span><span class="p">.</span><span class="n">ToString</span><span class="p">());</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">return</span> <span class="n">englishConfidence</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Note that it is all about sending proper request, and then finding out the language score of the detected languages in the response.</p>
+
+<h2>Post pull request status back to VSTS pull request</h2>
+
+<p>The original guideline I referenced at the beginning of this article contains the code of one other helper method we are going to change: <em>ComputeStatus</em>. Our version of this method will make a call to <em>GetEnglishConfidence</em> method listed above and form proper JSON to post back to VSTS:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+</pre></td><td class='code'><pre><code class='c#'><span class='line'><span class="k">private</span> <span class="k">static</span> <span class="kt">string</span> <span class="nf">ComputeStatus</span><span class="p">(</span><span class="kt">string</span> <span class="n">pullRequestTitle</span><span class="p">,</span> <span class="kt">string</span> <span class="n">apiKey</span><span class="p">,</span> <span class="n">TraceWriter</span> <span class="n">log</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="kt">string</span> <span class="n">state</span> <span class="p">=</span> <span class="s">&quot;failed&quot;</span><span class="p">;</span>
+</span><span class='line'>    <span class="kt">string</span> <span class="n">description</span> <span class="p">=</span> <span class="s">&quot;The PR title is not in English&quot;</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">GetEnglishConfidence</span><span class="p">(</span><span class="n">pullRequestTitle</span><span class="p">,</span> <span class="n">apiKey</span><span class="p">,</span> <span class="n">log</span><span class="p">)</span> <span class="p">&gt;=</span> <span class="m">70</span><span class="p">)</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="n">state</span> <span class="p">=</span> <span class="s">&quot;succeeded&quot;</span><span class="p">;</span>
+</span><span class='line'>        <span class="n">description</span> <span class="p">=</span> <span class="s">&quot;The PR title is in English! Please, proceed!&quot;</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">return</span> <span class="n">JsonConvert</span><span class="p">.</span><span class="n">SerializeObject</span><span class="p">(</span>
+</span><span class='line'>        <span class="k">new</span>
+</span><span class='line'>        <span class="p">{</span>
+</span><span class='line'>            <span class="n">State</span> <span class="p">=</span> <span class="n">state</span><span class="p">,</span>
+</span><span class='line'>            <span class="n">Description</span> <span class="p">=</span> <span class="n">description</span><span class="p">,</span>
+</span><span class='line'>
+</span><span class='line'>            <span class="n">Context</span> <span class="p">=</span> <span class="k">new</span>
+</span><span class='line'>            <span class="p">{</span>
+</span><span class='line'>                <span class="n">Name</span> <span class="p">=</span> <span class="s">&quot;AIforCI&quot;</span><span class="p">,</span>
+</span><span class='line'>                <span class="n">Genre</span> <span class="p">=</span> <span class="s">&quot;pr-azure-function-ci&quot;</span>
+</span><span class='line'>            <span class="p">}</span>
+</span><span class='line'>        <span class="p">});</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Besides, as long as the call to the language analytics service might take some time, we need a method to post initial Pending status:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+</pre></td><td class='code'><pre><code class='c#'><span class='line'><span class="k">private</span> <span class="k">static</span> <span class="kt">string</span> <span class="nf">ComputeInitialStatus</span><span class="p">()</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="kt">string</span> <span class="n">state</span> <span class="p">=</span> <span class="s">&quot;pending&quot;</span><span class="p">;</span>
+</span><span class='line'>    <span class="kt">string</span> <span class="n">description</span> <span class="p">=</span> <span class="s">&quot;Verifying title language&quot;</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">return</span> <span class="n">JsonConvert</span><span class="p">.</span><span class="n">SerializeObject</span><span class="p">(</span>
+</span><span class='line'>        <span class="k">new</span>
+</span><span class='line'>        <span class="p">{</span>
+</span><span class='line'>            <span class="n">State</span> <span class="p">=</span> <span class="n">state</span><span class="p">,</span>
+</span><span class='line'>            <span class="n">Description</span> <span class="p">=</span> <span class="n">description</span><span class="p">,</span>
+</span><span class='line'>
+</span><span class='line'>            <span class="n">Context</span> <span class="p">=</span> <span class="k">new</span>
+</span><span class='line'>            <span class="p">{</span>
+</span><span class='line'>                <span class="n">Name</span> <span class="p">=</span> <span class="s">&quot;AIforCI&quot;</span><span class="p">,</span>
+</span><span class='line'>                <span class="n">Genre</span> <span class="p">=</span> <span class="s">&quot;pr-azure-function-ci&quot;</span>
+</span><span class='line'>            <span class="p">}</span>
+</span><span class='line'>        <span class="p">});</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>As a result, the most interesting part of the Azure function itself will look like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='c#'><span class='line'><span class="c1">// Post the initial status (pending) while the true one is calculated</span>
+</span><span class='line'><span class="n">PostStatusOnPullRequest</span><span class="p">(</span><span class="n">pullRequestId</span><span class="p">,</span> <span class="n">ComputeInitialStatus</span><span class="p">(),</span> <span class="n">vstsPAT</span><span class="p">);</span>
+</span><span class='line'><span class="c1">// Post the real status based on the language analysis</span>
+</span><span class='line'><span class="n">PostStatusOnPullRequest</span><span class="p">(</span><span class="n">pullRequestId</span><span class="p">,</span> <span class="n">ComputeStatus</span><span class="p">(</span><span class="n">pullRequestTitle</span><span class="p">,</span> <span class="n">apiKey</span><span class="p">,</span> <span class="n">log</span><span class="p">),</span> <span class="n">vstsPAT</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>Demo time: let&rsquo;s tie it all together</h2>
+
+<p>I&rsquo;ll assume that all the steps described in the <a href="(https://docs.microsoft.com/en-us/vsts/git/how-to/create-pr-status-server-with-azure-functions">original guideline about Azure functions and pull requests</a>) are completed properly. As a result, VSTS knows how to trigger our Azure function on pull request create and update events.</p>
+
+<p>Let&rsquo;s create the first pull request and let it be titled in pure English:</p>
+
+<p><img src="/images/march2018/new_pr_pending.png"></p>
+
+<p>As soon as the title is verified against the language analytics service, the status changes:</p>
+
+<p><img src="/images/march2018/new_pr_success.png"></p>
+
+<p>Now, if we try to modify the title to some Russian text, the status changes accordingly:</p>
+
+<p><img src="/images/march2018/new_pr_failure.png"></p>
+
+<p>Finally, we can <a href="https://docs.microsoft.com/en-us/vsts/git/how-to/pr-status-policy?view=vsts">make a policy out of the pull request status</a>, and decide whether to block the PR completion based on the language verification result:</p>
+
+<p><img src="/images/march2018/new_pr_policy_success.png"></p>
+
+<h2>Conclusion</h2>
+
+<p>The combination of custom branch policies in VSTS and the power of Azure functions might result in very flexible solutions, limited only by your imagination. Give it a try and tweak your gated CI to comply with your needs.</p>
+
+<p>Here is the full source code of the solution:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+<span class='line-number'>84</span>
+<span class='line-number'>85</span>
+<span class='line-number'>86</span>
+<span class='line-number'>87</span>
+<span class='line-number'>88</span>
+<span class='line-number'>89</span>
+<span class='line-number'>90</span>
+<span class='line-number'>91</span>
+<span class='line-number'>92</span>
+<span class='line-number'>93</span>
+<span class='line-number'>94</span>
+<span class='line-number'>95</span>
+<span class='line-number'>96</span>
+<span class='line-number'>97</span>
+<span class='line-number'>98</span>
+<span class='line-number'>99</span>
+<span class='line-number'>100</span>
+<span class='line-number'>101</span>
+<span class='line-number'>102</span>
+<span class='line-number'>103</span>
+<span class='line-number'>104</span>
+<span class='line-number'>105</span>
+<span class='line-number'>106</span>
+<span class='line-number'>107</span>
+<span class='line-number'>108</span>
+<span class='line-number'>109</span>
+<span class='line-number'>110</span>
+<span class='line-number'>111</span>
+<span class='line-number'>112</span>
+<span class='line-number'>113</span>
+<span class='line-number'>114</span>
+<span class='line-number'>115</span>
+<span class='line-number'>116</span>
+<span class='line-number'>117</span>
+<span class='line-number'>118</span>
+<span class='line-number'>119</span>
+<span class='line-number'>120</span>
+<span class='line-number'>121</span>
+<span class='line-number'>122</span>
+<span class='line-number'>123</span>
+<span class='line-number'>124</span>
+<span class='line-number'>125</span>
+<span class='line-number'>126</span>
+<span class='line-number'>127</span>
+<span class='line-number'>128</span>
+<span class='line-number'>129</span>
+<span class='line-number'>130</span>
+<span class='line-number'>131</span>
+<span class='line-number'>132</span>
+<span class='line-number'>133</span>
+<span class='line-number'>134</span>
+<span class='line-number'>135</span>
+<span class='line-number'>136</span>
+<span class='line-number'>137</span>
+<span class='line-number'>138</span>
+<span class='line-number'>139</span>
+<span class='line-number'>140</span>
+<span class='line-number'>141</span>
+<span class='line-number'>142</span>
+<span class='line-number'>143</span>
+<span class='line-number'>144</span>
+<span class='line-number'>145</span>
+<span class='line-number'>146</span>
+<span class='line-number'>147</span>
+<span class='line-number'>148</span>
+<span class='line-number'>149</span>
+<span class='line-number'>150</span>
+<span class='line-number'>151</span>
+<span class='line-number'>152</span>
+<span class='line-number'>153</span>
+<span class='line-number'>154</span>
+<span class='line-number'>155</span>
+<span class='line-number'>156</span>
+<span class='line-number'>157</span>
+<span class='line-number'>158</span>
+<span class='line-number'>159</span>
+<span class='line-number'>160</span>
+<span class='line-number'>161</span>
+<span class='line-number'>162</span>
+<span class='line-number'>163</span>
+<span class='line-number'>164</span>
+<span class='line-number'>165</span>
+<span class='line-number'>166</span>
+<span class='line-number'>167</span>
+<span class='line-number'>168</span>
+<span class='line-number'>169</span>
+<span class='line-number'>170</span>
+</pre></td><td class='code'><pre><code class='c#'><span class='line'><span class="err">#</span><span class="n">r</span> <span class="s">&quot;Newtonsoft.Json&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">using</span> <span class="nn">System</span><span class="p">;</span>
+</span><span class='line'><span class="k">using</span> <span class="nn">System.Net</span><span class="p">;</span>
+</span><span class='line'><span class="k">using</span> <span class="nn">System.Net.Http</span><span class="p">;</span>
+</span><span class='line'><span class="k">using</span> <span class="nn">System.Net.Http.Headers</span><span class="p">;</span>
+</span><span class='line'><span class="k">using</span> <span class="nn">System.Text</span><span class="p">;</span>
+</span><span class='line'><span class="k">using</span> <span class="nn">Newtonsoft.Json</span><span class="p">;</span>
+</span><span class='line'><span class="k">using</span> <span class="nn">Microsoft.Azure.KeyVault</span><span class="p">;</span>
+</span><span class='line'><span class="k">using</span> <span class="nn">Microsoft.Azure.Services.AppAuthentication</span><span class="p">;</span>
+</span><span class='line'><span class="k">using</span> <span class="nn">Microsoft.ProjectOxford.Text.Core</span><span class="p">;</span>
+</span><span class='line'><span class="k">using</span> <span class="nn">Microsoft.ProjectOxford.Text.Language</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">private</span> <span class="k">static</span> <span class="kt">string</span> <span class="n">accountName</span> <span class="p">=</span> <span class="s">&quot;[Account Name]&quot;</span><span class="p">;</span>   <span class="c1">// Account name</span>
+</span><span class='line'><span class="k">private</span> <span class="k">static</span> <span class="kt">string</span> <span class="n">projectName</span> <span class="p">=</span> <span class="s">&quot;[Project Name]&quot;</span><span class="p">;</span>   <span class="c1">// Project name</span>
+</span><span class='line'><span class="k">private</span> <span class="k">static</span> <span class="kt">string</span> <span class="n">repositoryName</span> <span class="p">=</span> <span class="s">&quot;[Repo Name]&quot;</span><span class="p">;</span>   <span class="c1">// Repository name</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">public</span> <span class="k">static</span> <span class="k">async</span> <span class="n">Task</span><span class="p">&lt;</span><span class="n">HttpResponseMessage</span><span class="p">&gt;</span> <span class="n">Run</span><span class="p">(</span><span class="n">HttpRequestMessage</span> <span class="n">req</span><span class="p">,</span> <span class="n">TraceWriter</span> <span class="n">log</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="k">try</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="n">log</span><span class="p">.</span><span class="n">Info</span><span class="p">(</span><span class="s">&quot;Service Hook Received.&quot;</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="c1">// Get secrets from key vault</span>
+</span><span class='line'>        <span class="kt">var</span> <span class="n">azureServiceTokenProvider</span> <span class="p">=</span> <span class="k">new</span> <span class="n">AzureServiceTokenProvider</span><span class="p">();</span>
+</span><span class='line'>        <span class="kt">var</span> <span class="n">kvClient</span> <span class="p">=</span> <span class="k">new</span> <span class="n">KeyVaultClient</span><span class="p">(</span><span class="k">new</span> <span class="n">KeyVaultClient</span><span class="p">.</span><span class="n">AuthenticationCallback</span><span class="p">(</span><span class="n">azureServiceTokenProvider</span><span class="p">.</span><span class="n">KeyVaultTokenCallback</span><span class="p">));</span>
+</span><span class='line'>        <span class="kt">string</span> <span class="n">vstsPAT</span> <span class="p">=</span> <span class="p">(</span><span class="k">await</span> <span class="n">kvClient</span><span class="p">.</span><span class="n">GetSecretAsync</span><span class="p">(</span><span class="s">&quot;https://ysmainkeyvault.vault.azure.net/secrets/vstsPAT/&lt;GUID_HERE&gt;&quot;</span><span class="p">)).</span><span class="n">Value</span><span class="p">;</span>
+</span><span class='line'>        <span class="kt">string</span> <span class="n">apiKey</span> <span class="p">=</span> <span class="p">(</span><span class="k">await</span> <span class="n">kvClient</span><span class="p">.</span><span class="n">GetSecretAsync</span><span class="p">(</span><span class="s">&quot;https://ysmainkeyvault.vault.azure.net/secrets/CognitiveServicesAPIkey/&lt;GUID_HERE&gt;&quot;</span><span class="p">)).</span><span class="n">Value</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="c1">// Get request body</span>
+</span><span class='line'>        <span class="kt">dynamic</span> <span class="n">data</span> <span class="p">=</span> <span class="k">await</span> <span class="n">req</span><span class="p">.</span><span class="n">Content</span><span class="p">.</span><span class="n">ReadAsAsync</span><span class="p">&lt;</span><span class="kt">object</span><span class="p">&gt;();</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">log</span><span class="p">.</span><span class="n">Info</span><span class="p">(</span><span class="s">&quot;Data Received: &quot;</span> <span class="p">+</span> <span class="n">data</span><span class="p">.</span><span class="n">ToString</span><span class="p">());</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="c1">// Get the pull request object from the service hooks payload</span>
+</span><span class='line'>        <span class="kt">dynamic</span> <span class="n">jObject</span> <span class="p">=</span> <span class="n">JsonConvert</span><span class="p">.</span><span class="n">DeserializeObject</span><span class="p">(</span><span class="n">data</span><span class="p">.</span><span class="n">ToString</span><span class="p">());</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="c1">// Get the pull request id</span>
+</span><span class='line'>        <span class="kt">int</span> <span class="n">pullRequestId</span><span class="p">;</span>
+</span><span class='line'>        <span class="k">if</span> <span class="p">(!</span><span class="n">Int32</span><span class="p">.</span><span class="n">TryParse</span><span class="p">(</span><span class="n">jObject</span><span class="p">.</span><span class="n">resource</span><span class="p">.</span><span class="n">pullRequestId</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="k">out</span> <span class="n">pullRequestId</span><span class="p">))</span>
+</span><span class='line'>        <span class="p">{</span>
+</span><span class='line'>            <span class="n">log</span><span class="p">.</span><span class="n">Info</span><span class="p">(</span><span class="s">&quot;Failed to parse the pull request id from the service hooks payload.&quot;</span><span class="p">);</span>
+</span><span class='line'>        <span class="p">};</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="c1">// Get the pull request title</span>
+</span><span class='line'>        <span class="kt">string</span> <span class="n">pullRequestTitle</span> <span class="p">=</span> <span class="n">jObject</span><span class="p">.</span><span class="n">resource</span><span class="p">.</span><span class="n">title</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">log</span><span class="p">.</span><span class="n">Info</span><span class="p">(</span><span class="s">&quot;Service Hook Received for PR: &quot;</span> <span class="p">+</span> <span class="n">pullRequestId</span> <span class="p">+</span> <span class="s">&quot; &quot;</span> <span class="p">+</span> <span class="n">pullRequestTitle</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="c1">// Post the initial status (pending) while the true one is calculated</span>
+</span><span class='line'>        <span class="n">PostStatusOnPullRequest</span><span class="p">(</span><span class="n">pullRequestId</span><span class="p">,</span> <span class="n">ComputeInitialStatus</span><span class="p">(),</span> <span class="n">vstsPAT</span><span class="p">);</span>
+</span><span class='line'>        <span class="c1">// Post the real status based on the language analysis</span>
+</span><span class='line'>        <span class="n">PostStatusOnPullRequest</span><span class="p">(</span><span class="n">pullRequestId</span><span class="p">,</span> <span class="n">ComputeStatus</span><span class="p">(</span><span class="n">pullRequestTitle</span><span class="p">,</span> <span class="n">apiKey</span><span class="p">,</span> <span class="n">log</span><span class="p">),</span> <span class="n">vstsPAT</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">return</span> <span class="n">req</span><span class="p">.</span><span class="n">CreateResponse</span><span class="p">(</span><span class="n">HttpStatusCode</span><span class="p">.</span><span class="n">OK</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="k">catch</span> <span class="p">(</span><span class="n">Exception</span> <span class="n">ex</span><span class="p">)</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="n">log</span><span class="p">.</span><span class="n">Info</span><span class="p">(</span><span class="n">ex</span><span class="p">.</span><span class="n">ToString</span><span class="p">());</span>
+</span><span class='line'>        <span class="k">return</span> <span class="n">req</span><span class="p">.</span><span class="n">CreateResponse</span><span class="p">(</span><span class="n">HttpStatusCode</span><span class="p">.</span><span class="n">InternalServerError</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">private</span> <span class="k">static</span> <span class="k">void</span> <span class="nf">PostStatusOnPullRequest</span><span class="p">(</span><span class="kt">int</span> <span class="n">pullRequestId</span><span class="p">,</span> <span class="kt">string</span> <span class="n">status</span><span class="p">,</span> <span class="kt">string</span> <span class="n">pat</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="kt">string</span> <span class="n">Url</span> <span class="p">=</span> <span class="kt">string</span><span class="p">.</span><span class="n">Format</span><span class="p">(</span>
+</span><span class='line'>        <span class="s">@&quot;https://{0}.visualstudio.com/{1}/_apis/git/repositories/{2}/pullrequests/{3}/statuses?api-version=4.0-preview&quot;</span><span class="p">,</span>
+</span><span class='line'>        <span class="n">accountName</span><span class="p">,</span>
+</span><span class='line'>        <span class="n">projectName</span><span class="p">,</span>
+</span><span class='line'>        <span class="n">repositoryName</span><span class="p">,</span>
+</span><span class='line'>        <span class="n">pullRequestId</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">using</span> <span class="p">(</span><span class="n">HttpClient</span> <span class="n">client</span> <span class="p">=</span> <span class="k">new</span> <span class="n">HttpClient</span><span class="p">())</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="n">client</span><span class="p">.</span><span class="n">DefaultRequestHeaders</span><span class="p">.</span><span class="n">Accept</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="k">new</span> <span class="n">MediaTypeWithQualityHeaderValue</span><span class="p">(</span><span class="s">&quot;application/json&quot;</span><span class="p">));</span>
+</span><span class='line'>        <span class="n">client</span><span class="p">.</span><span class="n">DefaultRequestHeaders</span><span class="p">.</span><span class="n">Authorization</span> <span class="p">=</span> <span class="k">new</span> <span class="n">AuthenticationHeaderValue</span><span class="p">(</span><span class="s">&quot;Basic&quot;</span><span class="p">,</span> <span class="n">Convert</span><span class="p">.</span><span class="n">ToBase64String</span><span class="p">(</span>
+</span><span class='line'>                <span class="n">ASCIIEncoding</span><span class="p">.</span><span class="n">ASCII</span><span class="p">.</span><span class="n">GetBytes</span><span class="p">(</span>
+</span><span class='line'>                <span class="kt">string</span><span class="p">.</span><span class="n">Format</span><span class="p">(</span><span class="s">&quot;{0}:{1}&quot;</span><span class="p">,</span> <span class="s">&quot;&quot;</span><span class="p">,</span> <span class="n">pat</span><span class="p">))));</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="kt">var</span> <span class="n">method</span> <span class="p">=</span> <span class="k">new</span> <span class="n">HttpMethod</span><span class="p">(</span><span class="s">&quot;POST&quot;</span><span class="p">);</span>
+</span><span class='line'>        <span class="kt">var</span> <span class="n">request</span> <span class="p">=</span> <span class="k">new</span> <span class="n">HttpRequestMessage</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">Url</span><span class="p">)</span>
+</span><span class='line'>        <span class="p">{</span>
+</span><span class='line'>            <span class="n">Content</span> <span class="p">=</span> <span class="k">new</span> <span class="n">StringContent</span><span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">Encoding</span><span class="p">.</span><span class="n">UTF8</span><span class="p">,</span> <span class="s">&quot;application/json&quot;</span><span class="p">)</span>
+</span><span class='line'>        <span class="p">};</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">using</span> <span class="p">(</span><span class="n">HttpResponseMessage</span> <span class="n">response</span> <span class="p">=</span> <span class="n">client</span><span class="p">.</span><span class="n">SendAsync</span><span class="p">(</span><span class="n">request</span><span class="p">).</span><span class="n">Result</span><span class="p">)</span>
+</span><span class='line'>        <span class="p">{</span>
+</span><span class='line'>            <span class="n">response</span><span class="p">.</span><span class="n">EnsureSuccessStatusCode</span><span class="p">();</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">private</span> <span class="k">static</span> <span class="kt">int</span> <span class="nf">GetEnglishConfidence</span><span class="p">(</span><span class="kt">string</span> <span class="n">text</span><span class="p">,</span> <span class="kt">string</span> <span class="n">apiKey</span><span class="p">,</span> <span class="n">TraceWriter</span> <span class="n">log</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="kt">var</span> <span class="n">document</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Document</span><span class="p">()</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="n">Id</span> <span class="p">=</span> <span class="n">Guid</span><span class="p">.</span><span class="n">NewGuid</span><span class="p">().</span><span class="n">ToString</span><span class="p">(),</span>
+</span><span class='line'>        <span class="n">Text</span> <span class="p">=</span> <span class="n">text</span><span class="p">,</span>
+</span><span class='line'>    <span class="p">};</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kt">var</span> <span class="n">englishConfidence</span> <span class="p">=</span> <span class="m">0</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kt">var</span> <span class="n">client</span> <span class="p">=</span> <span class="k">new</span> <span class="n">LanguageClient</span><span class="p">(</span><span class="n">apiKey</span><span class="p">);</span>
+</span><span class='line'>    <span class="kt">var</span> <span class="n">request</span> <span class="p">=</span> <span class="k">new</span> <span class="n">LanguageRequest</span><span class="p">();</span>
+</span><span class='line'>    <span class="n">request</span><span class="p">.</span><span class="n">Documents</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">document</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">try</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="kt">var</span> <span class="n">response</span> <span class="p">=</span> <span class="n">client</span><span class="p">.</span><span class="n">GetLanguages</span><span class="p">(</span><span class="n">request</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="kt">var</span> <span class="n">tryEnglish</span> <span class="p">=</span> <span class="n">response</span><span class="p">.</span><span class="n">Documents</span><span class="p">.</span><span class="n">First</span><span class="p">().</span><span class="n">DetectedLanguages</span><span class="p">.</span><span class="n">Where</span><span class="p">(</span><span class="n">l</span> <span class="p">=&gt;</span> <span class="n">l</span><span class="p">.</span><span class="n">Iso639Name</span> <span class="p">==</span> <span class="s">&quot;en&quot;</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">if</span> <span class="p">(</span><span class="n">tryEnglish</span><span class="p">.</span><span class="n">Any</span><span class="p">())</span>
+</span><span class='line'>        <span class="p">{</span>
+</span><span class='line'>            <span class="kt">var</span> <span class="n">english</span> <span class="p">=</span> <span class="n">tryEnglish</span><span class="p">.</span><span class="n">First</span><span class="p">();</span>
+</span><span class='line'>            <span class="n">englishConfidence</span> <span class="p">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span> <span class="p">(</span><span class="n">english</span><span class="p">.</span><span class="n">Score</span> <span class="p">*</span> <span class="m">100</span><span class="p">);</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="k">catch</span> <span class="p">(</span><span class="n">Exception</span> <span class="n">ex</span><span class="p">)</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="n">log</span><span class="p">.</span><span class="n">Info</span><span class="p">(</span><span class="n">ex</span><span class="p">.</span><span class="n">ToString</span><span class="p">());</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">return</span> <span class="n">englishConfidence</span><span class="p">;</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'><span class="k">private</span> <span class="k">static</span> <span class="kt">string</span> <span class="nf">ComputeInitialStatus</span><span class="p">()</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="kt">string</span> <span class="n">state</span> <span class="p">=</span> <span class="s">&quot;pending&quot;</span><span class="p">;</span>
+</span><span class='line'>    <span class="kt">string</span> <span class="n">description</span> <span class="p">=</span> <span class="s">&quot;Verifying title language&quot;</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">return</span> <span class="n">JsonConvert</span><span class="p">.</span><span class="n">SerializeObject</span><span class="p">(</span>
+</span><span class='line'>        <span class="k">new</span>
+</span><span class='line'>        <span class="p">{</span>
+</span><span class='line'>            <span class="n">State</span> <span class="p">=</span> <span class="n">state</span><span class="p">,</span>
+</span><span class='line'>            <span class="n">Description</span> <span class="p">=</span> <span class="n">description</span><span class="p">,</span>
+</span><span class='line'>
+</span><span class='line'>            <span class="n">Context</span> <span class="p">=</span> <span class="k">new</span>
+</span><span class='line'>            <span class="p">{</span>
+</span><span class='line'>                <span class="n">Name</span> <span class="p">=</span> <span class="s">&quot;AIforCI&quot;</span><span class="p">,</span>
+</span><span class='line'>                <span class="n">Genre</span> <span class="p">=</span> <span class="s">&quot;pr-azure-function-ci&quot;</span>
+</span><span class='line'>            <span class="p">}</span>
+</span><span class='line'>        <span class="p">});</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">private</span> <span class="k">static</span> <span class="kt">string</span> <span class="nf">ComputeStatus</span><span class="p">(</span><span class="kt">string</span> <span class="n">pullRequestTitle</span><span class="p">,</span> <span class="kt">string</span> <span class="n">apiKey</span><span class="p">,</span> <span class="n">TraceWriter</span> <span class="n">log</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="kt">string</span> <span class="n">state</span> <span class="p">=</span> <span class="s">&quot;failed&quot;</span><span class="p">;</span>
+</span><span class='line'>    <span class="kt">string</span> <span class="n">description</span> <span class="p">=</span> <span class="s">&quot;The PR title is not in English&quot;</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">GetEnglishConfidence</span><span class="p">(</span><span class="n">pullRequestTitle</span><span class="p">,</span> <span class="n">apiKey</span><span class="p">,</span> <span class="n">log</span><span class="p">)</span> <span class="p">&gt;=</span> <span class="m">70</span><span class="p">)</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="n">state</span> <span class="p">=</span> <span class="s">&quot;succeeded&quot;</span><span class="p">;</span>
+</span><span class='line'>        <span class="n">description</span> <span class="p">=</span> <span class="s">&quot;The PR title is in English! Please, proceed!&quot;</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">return</span> <span class="n">JsonConvert</span><span class="p">.</span><span class="n">SerializeObject</span><span class="p">(</span>
+</span><span class='line'>        <span class="k">new</span>
+</span><span class='line'>        <span class="p">{</span>
+</span><span class='line'>            <span class="n">State</span> <span class="p">=</span> <span class="n">state</span><span class="p">,</span>
+</span><span class='line'>            <span class="n">Description</span> <span class="p">=</span> <span class="n">description</span><span class="p">,</span>
+</span><span class='line'>
+</span><span class='line'>            <span class="n">Context</span> <span class="p">=</span> <span class="k">new</span>
+</span><span class='line'>            <span class="p">{</span>
+</span><span class='line'>                <span class="n">Name</span> <span class="p">=</span> <span class="s">&quot;AIforCI&quot;</span><span class="p">,</span>
+</span><span class='line'>                <span class="n">Genre</span> <span class="p">=</span> <span class="s">&quot;pr-azure-function-ci&quot;</span>
+</span><span class='line'>            <span class="p">}</span>
+</span><span class='line'>        <span class="p">});</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Yan Sklyarenko</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2018-03-25T10:53:00+03:00" pubdate data-updated="true">Mar 25<span>th</span>, 2018</time>
+      
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://yansklyarenko.github.io/blog/2018/03/25/use-cognitive-services-in-vsts-custom-branch-policies/" data-via="" data-counturl="http://yansklyarenko.github.io/blog/2018/03/25/use-cognitive-services-in-vsts-custom-branch-policies/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2018/02/20/transform-trello-list-into-markdown-file/" title="Previous Post: Transform Trello list into Markdown file">&laquo; Transform Trello list into Markdown file</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2018/03/25/use-cognitive-services-in-vsts-custom-branch-policies/">Use cognitive services in VSTS custom branch policies</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2018/02/20/transform-trello-list-into-markdown-file/">Transform Trello list into Markdown file</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2017/11/06/vsts-and-teamcity-commit-status-publisher/">VSTS and TeamCity Commit Status Publisher</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/27/err-connection-refused/">ERR_CONNECTION_REFUSED</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/11/24/build-queue-starvation-in-cc-dot-net/">Build queue starvation in CC.NET</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2018 - Yan Sklyarenko -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>
